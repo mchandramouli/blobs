@@ -10,7 +10,7 @@
 
     <modules>
         <module>core</module>
-        <module>stores</module>
+        <module>s3-store</module>
     </modules>
 
     <scm>
