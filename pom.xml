@@ -73,8 +73,6 @@
         <slf4j-api.version>1.7.25</slf4j-api.version>
         <commons-lang.version>3.4</commons-lang.version>
         <commons-io.version>2.6</commons-io.version>
-        <httpclient.version>4.5.3</httpclient.version>
-        <aws-sdk.version>1.11.20</aws-sdk.version>
 
         <pegdown.version>1.6.0</pegdown.version>
         <scalatest.version>3.0.3</scalatest.version>

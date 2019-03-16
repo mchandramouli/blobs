@@ -8,13 +8,28 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>blobs-stores</artifactId>
+    <artifactId>blobs-s3-store</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.447</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcomponents-client</artifactId>
+            <version>4.5.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-core</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>
