@@ -13,7 +13,7 @@ public class BlobsFactory<T extends BlobContext> {
     }
 
     public Blobs create(final T context) {
-        return predicate.test(context) ? new StorableBlobs(context, store) : new NoOpBlobs();
+        return predicate.test(context) ? new WritableBlobs(context, store) : new NoOpBlobs();
     }
 }
 

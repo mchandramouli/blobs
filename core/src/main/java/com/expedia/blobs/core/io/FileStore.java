@@ -2,7 +2,7 @@ package com.expedia.blobs.core.io;
 
 import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
-import com.expedia.blobs.core.BlobStore;
+import com.expedia.blobs.core.SimpleBlob;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -15,10 +15,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.Validate;
 
-public class FileStore implements BlobStore {
+public class FileStore extends AsyncStore {
     private final File directory;
     private final Gson gson = new GsonBuilder().create();
-    private final Type mapType = new TypeToken<Map<String, String>>(){}.getType();
+    private final Type mapType = new TypeToken<Map<String, String>>() {
+    }.getType();
     private final Charset Utf8 = Charset.forName("UTF-8");
 
     public FileStore(String directory) {
@@ -26,6 +27,12 @@ public class FileStore implements BlobStore {
     }
 
     public FileStore(File directory) {
+        this(directory, Runtime.getRuntime().availableProcessors());
+    }
+
+    public FileStore(File directory, int threadPoolSize) {
+        super(threadPoolSize);
+
         Validate.isTrue(directory.exists() &&
                                 directory.isDirectory() &&
                                 directory.canWrite(), "Argument must be an existing directory that is writable");
@@ -34,12 +41,15 @@ public class FileStore implements BlobStore {
     }
 
     @Override
-    public void store(Blob blob) {
+    protected void storeInternal(Blob blob) {
         try {
-            final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), blob.getKey());
-            FileUtils.writeByteArrayToFile(new File(blobPath), blob.getData());
-            FileUtils.write(new File(blobPath + ".meta.json"),
-                            gson.toJson(blob.getMetadata()), Utf8);
+            if (blob.getSize() > 0) {
+                final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), blob.getKey());
+                final byte[] data = blob.getData();
+                final Map<String, String> metadata = blob.getMetadata();
+                FileUtils.writeByteArrayToFile(new File(blobPath), data);
+                FileUtils.write(new File(blobPath + ".meta.json"), gson.toJson(metadata), Utf8);
+            }
         }
         catch (IOException e) {
             throw new BlobReadWriteException(e);
@@ -47,13 +57,13 @@ public class FileStore implements BlobStore {
     }
 
     @Override
-    public Blob read(String fileKey) {
+    protected Blob readInternal(String fileKey) {
         try {
             final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), fileKey);
-            final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
             final String meta = FileUtils.readFileToString(new File(blobPath + ".meta.json"), Utf8);
             final Map<String, String> metadata = gson.fromJson(meta, mapType);
-            return new Blob(fileKey, metadata, data);
+            final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
+            return new SimpleBlob(fileKey, metadata, data);
         }
         catch (IOException e) {
             throw new BlobReadWriteException(e);
