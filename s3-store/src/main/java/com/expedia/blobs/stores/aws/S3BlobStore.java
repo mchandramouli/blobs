@@ -3,12 +3,19 @@ package com.expedia.blobs.stores.aws;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.expedia.blobs.core.Blob;
+import com.expedia.blobs.core.BlobReadWriteException;
+import com.expedia.blobs.core.SimpleBlob;
 import com.expedia.blobs.core.io.AsyncStore;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,16 +56,28 @@ public class S3BlobStore extends AsyncStore {
 
             final Upload upload = transferManager.upload(putRequest);
             //upload.waitForUploadResult();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             final String message = String.format("Unable to upload blob to S3 for  key %s : %s",
                                                  blob.getKey(),
                                                  e.getMessage());
-            LOGGER.error(message, e);
+            throw new BlobReadWriteException(message, e);
         }
     }
 
     @Override
     protected Blob readInternal(String fileKey) {
-        return null;
+        try {
+            final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, fileKey);
+            final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
+            try (final InputStream is = s3Object.getObjectContent()) {
+                return new SimpleBlob(fileKey,
+                                      objectMetadata == null ? new HashMap<>(0) : objectMetadata,
+                                      IOUtils.toByteArray(is));
+            }
+        }
+        catch (IOException e) {
+            throw new BlobReadWriteException(e);
+        }
     }
 }

@@ -1,9 +1,11 @@
 package com.expedia.blobs.core;
 
-import java.io.IOException;
-
 public class BlobReadWriteException extends RuntimeException {
-    public BlobReadWriteException(IOException cause) {
+    public BlobReadWriteException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public BlobReadWriteException(Throwable cause) {
         super(cause);
     }
 }
