@@ -59,9 +59,27 @@
             <plugin>
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
-                <configuration>
-                    <wildcardSuites>com.expedia.www.haystack.trace.commons.unit</wildcardSuites>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <tagsToExclude>com.expedia.test.IntegrationSuite</tagsToExclude>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>integration-test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <tagsToInclude>com.expedia.test.IntegrationSuite</tagsToInclude>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

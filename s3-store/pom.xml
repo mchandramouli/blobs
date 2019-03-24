@@ -34,36 +34,36 @@
     </dependencies>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.scalatest</groupId>
-                <artifactId>scalatest-maven-plugin</artifactId>
-                <configuration>
-                    <wildcardSuites>com.expedia.www.haystack.trace.commons.unit</wildcardSuites>
-                </configuration>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.scalatest</groupId>-->
+                <!--<artifactId>scalatest-maven-plugin</artifactId>-->
+                <!--<configuration>-->
+                    <!--<wildcardSuites>com.expedia.www.haystack.trace.commons.unit</wildcardSuites>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
 
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>net.alchim31.maven</groupId>-->
+                <!--<artifactId>scala-maven-plugin</artifactId>-->
+            <!--</plugin>-->
 
-            <plugin>
-                <groupId>org.scalastyle</groupId>
-                <artifactId>scalastyle-maven-plugin</artifactId>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.scalastyle</groupId>-->
+                <!--<artifactId>scalastyle-maven-plugin</artifactId>-->
+            <!--</plugin>-->
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-compiler-plugin</artifactId>-->
+            <!--</plugin>-->
 
-            <plugin>
-                <groupId>org.scoverage</groupId>
-                <artifactId>scoverage-maven-plugin</artifactId>
-                <configuration>
-                    <failOnMinimumCoverage>false</failOnMinimumCoverage>
-                </configuration>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.scoverage</groupId>-->
+                <!--<artifactId>scoverage-maven-plugin</artifactId>-->
+                <!--<configuration>-->
+                    <!--<failOnMinimumCoverage>false</failOnMinimumCoverage>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
         </plugins>
     </build>
 </project>
