@@ -7,18 +7,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.Validate;
 
 final class WritableBlobs implements Blobs {
     private final BlobContext context;
     private final BlobStore store;
 
     WritableBlobs(BlobContext context, BlobStore store) {
+        Validate.notNull(context);
+        Validate.notNull(store);
         this.context = context;
         this.store = store;
     }
 
     public void write(BlobType blobType, ContentType contentType,
                  Consumer<OutputStream> dataCallback, Consumer<Metadata> metadataCallback) {
+        Validate.notNull(blobType);
+        Validate.notNull(contentType);
+        Validate.notNull(dataCallback);
+        Validate.notNull(metadataCallback);
+
         String fileKey = context.makeKey(blobType);
 
         final Supplier<Map<String, String>> metadataSupplier = () -> {
