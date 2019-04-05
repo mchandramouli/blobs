@@ -1,7 +1,6 @@
 package com.expedia.blobs.core.io;
 
 import java.io.Closeable;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -36,13 +35,12 @@ class ManagedAsyncOperation implements Closeable {
         CompletableFuture.supplyAsync(supplier, threadPool).whenComplete(callback);
     }
 
-    <T> Optional<T> execute(Supplier<T> supplier, long timeout, TimeUnit timeUnit) {
+    <T> T execute(Supplier<T> supplier, T defaultValue, long timeout, TimeUnit timeUnit) {
         try {
-            final T result = CompletableFuture.supplyAsync(supplier, threadPool).get(timeout, timeUnit);
-            return Optional.ofNullable(result);
+            return CompletableFuture.supplyAsync(supplier, threadPool).get(timeout, timeUnit);
         }
         catch (InterruptedException|ExecutionException|TimeoutException e) {
-            return Optional.empty();
+            return defaultValue;
         }
     }
 

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.Validate;
@@ -57,13 +58,13 @@ public class FileStore extends AsyncStore {
     }
 
     @Override
-    protected Blob readInternal(String fileKey) {
+    protected Optional<Blob> readInternal(String fileKey) {
         try {
             final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), fileKey);
             final String meta = FileUtils.readFileToString(new File(blobPath + ".meta.json"), Utf8);
             final Map<String, String> metadata = gson.fromJson(meta, mapType);
             final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
-            return new SimpleBlob(fileKey, metadata, data);
+            return Optional.of(new SimpleBlob(fileKey, metadata, data));
         }
         catch (IOException e) {
             throw new BlobReadWriteException(e);

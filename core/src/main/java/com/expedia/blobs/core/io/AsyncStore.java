@@ -14,15 +14,24 @@ public abstract class AsyncStore implements BlobStore, Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(AsyncStore.class);
     private final ManagedAsyncOperation managedAsyncOperation;
 
+    /**
+     * Initializes {@link AsyncStore} with threads equal to the number of processors available
+     * See Runtime#availableProcessors()
+     */
     public AsyncStore() {
         this(Runtime.getRuntime().availableProcessors());
     }
 
+    /**
+     * Initializes {@link AsyncStore} instance with a threadpool if the number of
+     * threads given are greater than zero
+     * @param threadPoolSize 0 or more
+     */
     public AsyncStore(int threadPoolSize) {
         this(threadPoolSize > 0 ? new ManagedAsyncOperation(threadPoolSize) : null);
     }
 
-    AsyncStore(ManagedAsyncOperation managedAsyncOperation) {
+    private AsyncStore(ManagedAsyncOperation managedAsyncOperation) {
         this.managedAsyncOperation = managedAsyncOperation;
     }
 
@@ -39,26 +48,26 @@ public abstract class AsyncStore implements BlobStore, Closeable {
     }
 
     @Override
-    public Blob read(String fileKey) {
-        return readInternal(fileKey);
+    public Optional<Blob> read(String key) {
+        return readInternal(key);
     }
 
     @Override
-    public void read(String fileKey, BiConsumer<Blob, Throwable> callback) {
+    public void read(String key, BiConsumer<Optional<Blob>, Throwable> callback) {
         if (this.managedAsyncOperation == null) {
             throw new UnsupportedOperationException(this.getClass() + ": async operations not enabled");
         }
 
-        this.managedAsyncOperation.execute(() -> readInternal(fileKey), callback);
+        this.managedAsyncOperation.execute(() -> readInternal(key), callback);
     }
 
     @Override
-    public Optional<Blob> read(String fileKey, long timeout, TimeUnit timeUnit) {
+    public Optional<Blob> read(String key, long timeout, TimeUnit timeUnit) {
         if (this.managedAsyncOperation == null) {
             throw new UnsupportedOperationException(this.getClass() + ": async operations not enabled");
         }
 
-        return this.managedAsyncOperation.execute(() -> readInternal(fileKey), timeout, timeUnit);
+        return this.managedAsyncOperation.execute(() -> readInternal(key), Optional.empty(), timeout, timeUnit);
     }
 
     @Override
@@ -70,5 +79,5 @@ public abstract class AsyncStore implements BlobStore, Closeable {
 
     protected abstract void storeInternal(Blob blob);
 
-    protected abstract Blob readInternal(String fileKey);
+    protected abstract Optional<Blob> readInternal(String fileKey);
 }

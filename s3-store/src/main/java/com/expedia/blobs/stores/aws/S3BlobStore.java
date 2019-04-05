@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -66,14 +67,14 @@ public class S3BlobStore extends AsyncStore {
     }
 
     @Override
-    protected Blob readInternal(String fileKey) {
+    protected Optional<Blob> readInternal(String fileKey) {
         try {
             final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, fileKey);
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
             try (final InputStream is = s3Object.getObjectContent()) {
-                return new SimpleBlob(fileKey,
+                return Optional.of(new SimpleBlob(fileKey,
                                       objectMetadata == null ? new HashMap<>(0) : objectMetadata,
-                                      IOUtils.toByteArray(is));
+                                      IOUtils.toByteArray(is)));
             }
         }
         catch (IOException e) {
