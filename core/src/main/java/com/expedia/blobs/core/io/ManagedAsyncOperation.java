@@ -33,13 +33,19 @@ import org.slf4j.LoggerFactory;
 class ManagedAsyncOperation implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ManagedAsyncOperation.class);
     private final ExecutorService threadPool;
+    private int shutdownWaitInSeconds;
 
     ManagedAsyncOperation(int threadPoolSize) {
-        Validate.isTrue(threadPoolSize > 0);
-        this.threadPool = Executors.unconfigurableExecutorService(Executors.newFixedThreadPool(threadPoolSize));
+        this(threadPoolSize, 60);
     }
 
-    ManagedAsyncOperation(ExecutorService threadPool) {
+    ManagedAsyncOperation(int threadPoolSize, int shutdownWaitInSeconds) {
+        this(Executors.unconfigurableExecutorService(Executors.newFixedThreadPool(threadPoolSize)), shutdownWaitInSeconds);
+    }
+
+    private ManagedAsyncOperation(ExecutorService threadPool, int shutdownWaitInSeconds) {
+        Validate.isTrue(shutdownWaitInSeconds > 0);
+        this.shutdownWaitInSeconds = shutdownWaitInSeconds;
         Validate.notNull(threadPool);
         this.threadPool = threadPool;
     }
@@ -65,11 +71,9 @@ class ManagedAsyncOperation implements Closeable {
     public void close() {
         threadPool.shutdown();
         try {
-            if (!threadPool.awaitTermination(60L, TimeUnit.SECONDS)) {
+            if (!threadPool.awaitTermination(this.shutdownWaitInSeconds, TimeUnit.SECONDS)) {
+                LOGGER.error("AsyncStore thread pool failed to terminate in 60 seconds. Forcing shutdown");
                 threadPool.shutdownNow();
-                if (!threadPool.awaitTermination(60L, TimeUnit.SECONDS)) {
-                    LOGGER.error("AsyncStore thread pool failed to terminate");
-                }
             }
         }
         catch (InterruptedException ie) {
