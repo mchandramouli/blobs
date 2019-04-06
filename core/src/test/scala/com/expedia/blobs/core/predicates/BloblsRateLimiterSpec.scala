@@ -27,5 +27,19 @@ class BloblsRateLimiterSpec extends FunSpec with GivenWhenThen with BeforeAndAft
       val ratePerSecond = counter / elapsed
       (ratePerSecond <= 2.0) should be (true)
     }
+    it("rate limit of less than 1 per second always returns false") {
+      Given("a rate of 0")
+      val rateLimiter = new BlobsRateLimiter[BlobContext](0.0)
+      val context = new SimpleBlobContext("service1", "operation1")
+      var counter = 0
+      When("rate limiter is invoked")
+      for (_ <- 1 to 200) {
+        if (rateLimiter.test(context))
+          counter += 1
+        Thread.sleep(10)
+      }
+      Then("it should always fail the check")
+      counter should equal(0)
+    }
   }
 }
