@@ -44,13 +44,13 @@ final class WritableBlobs implements Blobs {
         Validate.notNull(dataCallback);
         Validate.notNull(metadataCallback);
 
-        String fileKey = context.makeKey(blobType);
+        String blobKey = context.makeKey(blobType);
 
         final Supplier<Map<String, String>> metadataSupplier = () -> {
             final Map<String, String> metadata = new HashMap<>(2);
             metadataCallback.accept(metadata::put);
-            metadata.put("blob-type", blobType.toString());
-            metadata.put("content-type", contentType.toString());
+            metadata.put("blob-type", blobType.getType());
+            metadata.put("content-type", contentType.getType());
             return metadata;
         };
 
@@ -64,12 +64,12 @@ final class WritableBlobs implements Blobs {
             }
         };
 
-        write(fileKey, metadataSupplier, dataSupplier);
+        write(blobKey, metadataSupplier, dataSupplier);
     }
 
-    private void write(String fileKey,
+    private void write(String blobKey,
                        Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier) {
-        final WritableBlob b = new WritableBlob(fileKey, metadataSupplier, dataSupplier);
+        final WritableBlob b = new WritableBlob(blobKey, metadataSupplier, dataSupplier);
         store.store(b);
     }
 

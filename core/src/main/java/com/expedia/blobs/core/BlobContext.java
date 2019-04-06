@@ -53,6 +53,6 @@ public interface BlobContext {
                              getServiceName(),
                              getOperationName(),
                              getOperationId(),
-                             type, UUID.randomUUID().toString());
+                             type.getType(), UUID.randomUUID().toString());
     }
 }
