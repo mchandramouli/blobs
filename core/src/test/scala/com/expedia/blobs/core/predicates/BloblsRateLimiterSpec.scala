@@ -16,10 +16,10 @@ class BloblsRateLimiterSpec extends FunSpec with GivenWhenThen with BeforeAndAft
       val stopwatch = Stopwatch.createUnstarted
       When("rate limit check is invoked multiple times")
       stopwatch.start()
-      for (_ <- 1 to 200) {
+      for (_ <- 1 to 20) {
         if (rateLimiter.test(context))
           counter += 1
-        Thread.sleep(10)
+        Thread.sleep(100)
       }
       stopwatch.stop()
       Then("average check succeeded per second should be no more than 2.0")
@@ -33,7 +33,7 @@ class BloblsRateLimiterSpec extends FunSpec with GivenWhenThen with BeforeAndAft
       val context = new SimpleBlobContext("service1", "operation1")
       var counter = 0
       When("rate limiter is invoked")
-      for (_ <- 1 to 200) {
+      for (_ <- 1 to 10) {
         if (rateLimiter.test(context))
           counter += 1
         Thread.sleep(10)

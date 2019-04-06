@@ -38,7 +38,7 @@ public class BlobsRateLimiter<T extends BlobContext> implements Predicate<T> {
         final boolean ok = (rateLimiter != null) && rateLimiter.tryAcquire();
 
         if (!ok && LOGGER.isInfoEnabled()) {
-            LOGGER.info("maximum dispatch rate limit of " + this.ratePerSecond + " blobs/sec has reached!");
+            LOGGER.info("rate limit of " + this.ratePerSecond + " blobs/sec has reached!");
         }
 
         return ok;
