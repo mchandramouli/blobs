@@ -1,11 +1,12 @@
 package com.expedia.blobs.core
 
-import java.io.OutputStream
-import java.util.concurrent.atomic.AtomicBoolean
+import java.io.{IOException, OutputStream}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import org.easymock.EasyMock
 import org.scalatest.easymock.EasyMockSugar._
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
+
 import scala.collection.JavaConverters._
 
 class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers {
@@ -29,7 +30,8 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
       val capturedBlob = captured.getValue
       """service1/operation1/.*/request-.*""".r.pattern.matcher(capturedBlob.getKey).matches() should be (true)
     }
-    it("should call store to with a blob object that invokes the lambda to serialize blob only when data is fetched") {
+    it("should call store to with a blob object that invokes the callback to serialize blob only " +
+      "the first time when data is fetched") {
       Given("a mock store, blob context and a writable blobs")
       val store = mock[BlobStore]
       val context = new SimpleBlobContext("service1", "operation1")
@@ -37,6 +39,7 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
       val captured = EasyMock.newCapture[Blob]
       val blobToWrite = "{}"
       val blobWritten = new AtomicBoolean(false)
+      val blobWrittenCount = new AtomicInteger(0)
       expecting {
         store.store(EasyMock.capture(captured))
       }
@@ -44,6 +47,7 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
       When("a call is made to store a blob")
       writableBlobs.write(BlobType.REQUEST, ContentType.JSON, (o: OutputStream) => {
         blobWritten.set(true)
+        blobWrittenCount.incrementAndGet()
         o.write(blobToWrite.getBytes)
       }, (m: Metadata) => {})
       Then("store is called with a blob object")
@@ -54,9 +58,14 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
       val capturedBlob = captured.getValue
       val data = capturedBlob.getData
       blobWritten.get should be (true)
+      blobWrittenCount.get should be (1)
       data should be (blobToWrite.getBytes)
+      And("calling getData the second time does not call the callback")
+      capturedBlob.getData
+      blobWrittenCount.get should be (1)
     }
-    it("should call store to with a blob object that invokes the lambda to add metadata only when metadata is read") {
+    it("should call store to with a blob object that invokes the callback to add metadata only " +
+      "the first time when metadata is read") {
       Given("a mock store, blob context and a writable blobs")
       val store = mock[BlobStore]
       val context = new SimpleBlobContext("service1", "operation1")
@@ -64,6 +73,7 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
       val captured = EasyMock.newCapture[Blob]
       val blobToWrite = "{}"
       val metaDataWritten = new AtomicBoolean(false)
+      val metaDataWriteCount = new AtomicInteger(0)
       expecting {
         store.store(EasyMock.capture(captured))
       }
@@ -73,6 +83,7 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
         o.write(blobToWrite.getBytes)
       }, (m: Metadata) => {
         metaDataWritten.set(true)
+        metaDataWriteCount.incrementAndGet()
         m.add("key", "value")
       })
       Then("store is called with a blob object")
@@ -83,10 +94,61 @@ class WritableBlobsSpec extends FunSpec with GivenWhenThen with BeforeAndAfter w
       val capturedBlob = captured.getValue
       val data = capturedBlob.getMetadata
       metaDataWritten.get should be (true)
+      metaDataWriteCount.get() should be (1)
       data.asScala should equal (Map(
         "blob-type" -> "request",
         "content-type" -> ContentType.JSON.getType,
         "key" -> "value"))
+      And("calling getMetadata the second time does not call the callback")
+      capturedBlob.getMetadata
+      metaDataWriteCount.get should be (1)
+    }
+    it("should call the blob store to with a blob object and getData should throw an exception if callback " +
+      "throws an exception") {
+      Given("a mock store, blob context and a writable blobs")
+      val store = mock[BlobStore]
+      val context = new SimpleBlobContext("service1", "operation1")
+      val writableBlobs = new WritableBlobs(context, store)
+      val captured = EasyMock.newCapture[Blob]
+      expecting {
+        store.store(EasyMock.capture(captured))
+      }
+      EasyMock.replay(store)
+
+      When("a call is made to store a blob with a callback that fails")
+      writableBlobs.write(BlobType.REQUEST, ContentType.JSON, (o: OutputStream) => {
+        throw new IOException("something went wrong")
+      }, (m: Metadata) => {})
+      Then("store is called with a blob object")
+      captured.hasCaptured should be (true)
+      And("getData throws an exception if the callback throws an exception")
+      intercept[BlobReadWriteException] {
+        captured.getValue.getData
+      }
+    }
+    it("should call the given blob store to with a blob object that provides the size of the blob correctly") {
+      Given("a mock store, blob context and a writable blobs")
+      val store = mock[BlobStore]
+      val context = new SimpleBlobContext("service1", "operation1")
+      val writableBlobs = new WritableBlobs(context, store)
+      val captured = EasyMock.newCapture[Blob]
+      val blobToWrite = "{}"
+      val blobWritten = new AtomicBoolean(false)
+      val blobWrittenCount = new AtomicInteger(0)
+      expecting {
+        store.store(EasyMock.capture(captured))
+      }
+      EasyMock.replay(store)
+      When("a call is made to store a blob")
+      writableBlobs.write(BlobType.REQUEST, ContentType.JSON, (o: OutputStream) => {
+        blobWritten.set(true)
+        blobWrittenCount.incrementAndGet()
+        o.write(blobToWrite.getBytes)
+      }, (m: Metadata) => {})
+      Then("store is called with a blob object")
+      captured.hasCaptured should be (true)
+      And ("and the size of the blob object is correct")
+      captured.getValue.getSize should equal (2)
     }
   }
 }
