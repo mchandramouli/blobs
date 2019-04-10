@@ -27,41 +27,39 @@ import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AsyncStore implements BlobStore, Closeable {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncStore.class);
+public abstract class AsyncSupport implements BlobStore, Closeable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncSupport.class);
     private final ManagedAsyncOperation managedAsyncOperation;
 
     /**
-     * Initializes {@link AsyncStore} with threads equal to the number of processors available
+     * Initializes {@link AsyncSupport} with threads equal to the number of processors available
      * See Runtime#availableProcessors()
      */
-    public AsyncStore() {
+    public AsyncSupport() {
         this(Runtime.getRuntime().availableProcessors());
     }
 
     /**
-     * Initializes {@link AsyncStore} instance with a threadpool if the number of
+     * Initializes {@link AsyncSupport} instance with a threadpool if the number of
      * threads given are greater than zero
-     * @param threadPoolSize 0 or more
+     *
+     * @param threadPoolSize 1 or more
      */
-    public AsyncStore(int threadPoolSize) {
-        this(threadPoolSize > 0 ? new ManagedAsyncOperation(threadPoolSize) : null);
+    public AsyncSupport(int threadPoolSize) {
+        this(new ManagedAsyncOperation(threadPoolSize));
     }
 
-    private AsyncStore(ManagedAsyncOperation managedAsyncOperation) {
+    private AsyncSupport(ManagedAsyncOperation managedAsyncOperation) {
         this.managedAsyncOperation = managedAsyncOperation;
     }
 
     @Override
     public void store(Blob blob) {
-        if (this.managedAsyncOperation == null) {
-            storeInternal(blob);
-        }
-        else {
-            this.managedAsyncOperation.execute(() -> storeInternal(blob), (v, t) -> {
+        this.managedAsyncOperation.execute(() -> storeInternal(blob), (v, t) -> {
+            if (t != null) {
                 LOGGER.error(this.getClass().getSimpleName() + " failed to store blob " + blob.getKey(), t);
-            });
-        }
+            }
+        });
     }
 
     @Override
@@ -71,19 +69,11 @@ public abstract class AsyncStore implements BlobStore, Closeable {
 
     @Override
     public void read(String key, BiConsumer<Optional<Blob>, Throwable> callback) {
-        if (this.managedAsyncOperation == null) {
-            throw new UnsupportedOperationException(this.getClass() + ": async operations not enabled");
-        }
-
         this.managedAsyncOperation.execute(() -> readInternal(key), callback);
     }
 
     @Override
     public Optional<Blob> read(String key, long timeout, TimeUnit timeUnit) {
-        if (this.managedAsyncOperation == null) {
-            throw new UnsupportedOperationException(this.getClass() + ": async operations not enabled");
-        }
-
         return this.managedAsyncOperation.execute(() -> readInternal(key), Optional.empty(), timeout, timeUnit);
     }
 
@@ -96,5 +86,5 @@ public abstract class AsyncStore implements BlobStore, Closeable {
 
     protected abstract void storeInternal(Blob blob);
 
-    protected abstract Optional<Blob> readInternal(String fileKey);
+    protected abstract Optional<Blob> readInternal(String key);
 }

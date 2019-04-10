@@ -40,14 +40,10 @@ class ManagedAsyncOperation implements Closeable {
     }
 
     ManagedAsyncOperation(int threadPoolSize, int shutdownWaitInSeconds) {
-        this(Executors.unconfigurableExecutorService(Executors.newFixedThreadPool(threadPoolSize)), shutdownWaitInSeconds);
-    }
-
-    private ManagedAsyncOperation(ExecutorService threadPool, int shutdownWaitInSeconds) {
+        Validate.isTrue(threadPoolSize > 0, "threadPoolSize cannot be 0");
         Validate.isTrue(shutdownWaitInSeconds > 0);
         this.shutdownWaitInSeconds = shutdownWaitInSeconds;
-        Validate.notNull(threadPool);
-        this.threadPool = threadPool;
+        this.threadPool = Executors.unconfigurableExecutorService(Executors.newFixedThreadPool(threadPoolSize));
     }
 
     void execute(Runnable operation, BiConsumer<Void, Throwable> handler) {

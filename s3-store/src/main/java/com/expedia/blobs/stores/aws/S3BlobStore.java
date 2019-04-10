@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.SimpleBlob;
-import com.expedia.blobs.core.io.AsyncStore;
+import com.expedia.blobs.core.io.AsyncSupport;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +38,7 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class S3BlobStore extends AsyncStore {
+public class S3BlobStore extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(S3BlobStore.class);
     private final String bucketName;
     private final TransferManager transferManager;
@@ -84,14 +84,14 @@ public class S3BlobStore extends AsyncStore {
     }
 
     @Override
-    protected Optional<Blob> readInternal(String fileKey) {
+    protected Optional<Blob> readInternal(String key) {
         try {
-            final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, fileKey);
+            final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, key);
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
             try (final InputStream is = s3Object.getObjectContent()) {
-                return Optional.of(new SimpleBlob(fileKey,
-                                      objectMetadata == null ? new HashMap<>(0) : objectMetadata,
-                                      IOUtils.toByteArray(is)));
+                return Optional.of(new SimpleBlob(key,
+                                                  objectMetadata == null ? new HashMap<>(0) : objectMetadata,
+                                                  IOUtils.toByteArray(is)));
             }
         }
         catch (IOException e) {

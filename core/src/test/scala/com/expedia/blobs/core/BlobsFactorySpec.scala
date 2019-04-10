@@ -33,13 +33,17 @@ class BlobsFactorySpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       blobs shouldBe a [WritableBlobs]
     }
     it("should return a no-op blobs if filter test fails") {
-      Given("a blobs factory with a predicate")
+      Given("a blobs factory with a predicate that returns false")
       val store = mock[BlobStore]
       val factory = new BlobsFactory[SimpleBlobContext](store, (c :BlobContext) => false)
       When("a new blobs instance is requested")
       val blobs = factory.create(new SimpleBlobContext("service", "operation"))
-      Then("is should be a NoOpBlobs")
+      Then("is should be a valid blobs")
       blobs should not be null
+      And("an operation on blobs should not result in anything")
+      blobs.write(BlobType.REQUEST, ContentType.JSON, o => { fail("should not be called") },
+        m => { fail("should not be called") })
+      Thread.sleep(100)
       blobs shouldBe a [NoOpBlobs]
     }
     it("should return a valid blobs if filter test succeeds") {
