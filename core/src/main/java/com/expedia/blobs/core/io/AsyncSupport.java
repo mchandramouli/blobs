@@ -64,7 +64,13 @@ public abstract class AsyncSupport implements BlobStore, Closeable {
 
     @Override
     public Optional<Blob> read(String key) {
-        return readInternal(key);
+        try {
+            return readInternal(key);
+        }
+        catch (Exception e) {
+            LOGGER.error(this.getClass().getSimpleName() + " failed to read blob " + key, e);
+            return Optional.empty();
+        }
     }
 
     @Override
