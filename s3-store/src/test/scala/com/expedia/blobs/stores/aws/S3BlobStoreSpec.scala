@@ -33,7 +33,7 @@ class ErrorHandlingS3BlobStore(bucket: String, trfManager: TransferManager) exte
 
   override protected def readInputStream(is: InputStream): Array[Byte] = {
     if (error != null)  throw error
-    """{"key":"value"}""".getBytes
+    super.readInputStream(new ByteArrayInputStream("""{"key":"value"}""".getBytes))
   }
 }
 
