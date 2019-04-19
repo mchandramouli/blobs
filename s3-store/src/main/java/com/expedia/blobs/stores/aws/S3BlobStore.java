@@ -92,11 +92,15 @@ public class S3BlobStore extends AsyncSupport {
             try (final InputStream is = s3Object.getObjectContent()) {
                 return Optional.of(new SimpleBlob(key,
                                                   objectMetadata == null ? new HashMap<>(0) : objectMetadata,
-                                                  IOUtils.toByteArray(is)));
+                                                  readInputStream(is)));
             }
         }
-        catch (IOException e) {
+        catch (Exception e) {
             throw new BlobReadWriteException(e);
         }
+    }
+
+    protected byte[] readInputStream(InputStream is) throws IOException {
+        return IOUtils.toByteArray(is);
     }
 }

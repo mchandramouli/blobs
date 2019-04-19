@@ -20,7 +20,6 @@ package com.expedia.blobs.core.io;
 import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobStore;
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -46,16 +45,12 @@ public abstract class AsyncSupport implements BlobStore, Closeable {
      * @param threadPoolSize 1 or more
      */
     public AsyncSupport(int threadPoolSize) {
-        this(new ManagedAsyncOperation(threadPoolSize));
-    }
-
-    private AsyncSupport(ManagedAsyncOperation managedAsyncOperation) {
-        this.managedAsyncOperation = managedAsyncOperation;
+        this.managedAsyncOperation = new ManagedAsyncOperation(threadPoolSize);
     }
 
     @Override
     public void store(Blob blob) {
-        this.managedAsyncOperation.execute(() -> storeInternal(blob), (v, t) -> {
+        store (blob, (v, t) -> {
             if (t != null) {
                 LOGGER.error(this.getClass().getSimpleName() + " failed to store blob " + blob.getKey(), t);
             }
@@ -84,10 +79,14 @@ public abstract class AsyncSupport implements BlobStore, Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         if (this.managedAsyncOperation != null) {
             this.managedAsyncOperation.close();
         }
+    }
+
+    protected final void store(Blob blob, BiConsumer<Void, Throwable> errorHandler) {
+        this.managedAsyncOperation.execute(() -> storeInternal(blob), errorHandler);
     }
 
     protected abstract void storeInternal(Blob blob);
