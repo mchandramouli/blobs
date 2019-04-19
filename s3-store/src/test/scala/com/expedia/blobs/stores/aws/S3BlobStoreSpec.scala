@@ -148,17 +148,31 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     blob.getKey should equal ("key1")
     blob.getMetadata.asScala should equal (Map[String, String]("a" -> "b"))
     blob.getData should equal ("""{"key":"value"}""".getBytes)
+    verify(transferManager, s3Client, s3Object, objectMetadata)
   }
   it("should handle any exception at read and return empty object") {
     Given("a blob store that fails on read")
     val transferManager = mock[TransferManager]
     val store = new ErrorHandlingS3BlobStore("blobs", transferManager)
     store.throwError()
+    val s3Client = mock[AmazonS3Client]
+    val s3Object = mock[S3Object]
+    val objectMetadata = mock[ObjectMetadata]
+    val s3InputStream = mock[S3ObjectInputStream]
+    expecting {
+      transferManager.getAmazonS3Client.andReturn(s3Client).times(1)
+      s3Client.getObject("blobs", "key1").andReturn(s3Object).once()
+      s3Object.getObjectMetadata.andReturn(objectMetadata).once()
+      objectMetadata.getUserMetadata.andReturn(null).once()
+      s3Object.getObjectContent.andReturn(s3InputStream).once()
+    }
+    replay(transferManager, s3Client, s3Object, objectMetadata)
     var error : Throwable = null
     When("read is called with a key")
     store.read("key1", (v: Optional[Blob], t: Throwable) => error = t)
     Then("it should handle the error as expected")
     Thread.sleep(10)
+    verify(transferManager, s3Client, s3Object, objectMetadata)
     error shouldBe a [RuntimeException]
   }
 }
