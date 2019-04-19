@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 
 public class FileStore extends AsyncSupport {
     private final File directory;

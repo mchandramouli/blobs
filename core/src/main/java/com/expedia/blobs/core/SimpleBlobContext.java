@@ -17,7 +17,7 @@
  */
 package com.expedia.blobs.core;
 
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 
 /**
  * Simple class representing a {@link BlobContext} associated with {@link Blobs}

@@ -18,7 +18,7 @@
 package com.expedia.blobs.core;
 
 import java.util.function.Predicate;
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 
 /**
  * Starting point to obtain an instance of {@link Blobs} to write

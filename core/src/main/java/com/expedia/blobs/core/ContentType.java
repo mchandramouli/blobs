@@ -17,7 +17,7 @@
  */
 package com.expedia.blobs.core;
 
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 
 /**
  * Class representing the content type of {@link Blob} object being saved or retrieved

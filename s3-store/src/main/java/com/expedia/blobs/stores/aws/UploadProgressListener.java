@@ -19,7 +19,7 @@ package com.expedia.blobs.stores.aws;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 
 class UploadProgressListener implements ProgressListener {

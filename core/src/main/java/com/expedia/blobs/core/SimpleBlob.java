@@ -18,7 +18,7 @@
 package com.expedia.blobs.core;
 
 import java.util.Map;
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 
 /**
  * Simple implementation of {@link Blob}

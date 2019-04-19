@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 
 final class WritableBlobs implements Blobs {
     private final BlobContext context;

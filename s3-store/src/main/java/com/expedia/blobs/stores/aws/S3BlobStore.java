@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +52,7 @@ public class S3BlobStore extends AsyncSupport {
                        int threadPoolSize) {
         super(threadPoolSize);
 
+        Validate.notNull(transferManager);
         this.transferManager = transferManager;
 
         Validate.notEmpty(bucketName);
