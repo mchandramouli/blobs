@@ -10,7 +10,7 @@ class ManagedAsyncOperationSpec extends FunSpec with GivenWhenThen with BeforeAn
   describe("a class that manages async operations") {
     var asyncOperation: ManagedAsyncOperation = null
     before {
-      asyncOperation = new ManagedAsyncOperation(1)
+      asyncOperation = new ManagedAsyncOperation(1, 60)
     }
 
     after {

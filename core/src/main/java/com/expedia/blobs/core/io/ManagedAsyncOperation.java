@@ -35,10 +35,6 @@ class ManagedAsyncOperation implements Closeable {
     private final ExecutorService threadPool;
     private int shutdownWaitInSeconds;
 
-    ManagedAsyncOperation(int threadPoolSize) {
-        this(threadPoolSize, 60);
-    }
-
     ManagedAsyncOperation(int threadPoolSize, int shutdownWaitInSeconds) {
         Validate.isTrue(threadPoolSize > 0, "threadPoolSize cannot be 0");
         Validate.isTrue(shutdownWaitInSeconds > 0);
@@ -68,7 +64,7 @@ class ManagedAsyncOperation implements Closeable {
         threadPool.shutdown();
         try {
             if (!threadPool.awaitTermination(this.shutdownWaitInSeconds, TimeUnit.SECONDS)) {
-                LOGGER.error("AsyncStore thread pool failed to terminate in 60 seconds. Forcing shutdown");
+                LOGGER.error(String.format("AsyncStore thread pool failed to terminate in %s seconds. Forcing shutdown", this.shutdownWaitInSeconds));
                 threadPool.shutdownNow();
             }
         }

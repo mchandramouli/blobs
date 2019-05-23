@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
 import org.parboiled.common.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
-class TestableFileStore(path: String) extends FileStore(path) {
+class TestableFileStore(builder: FileStore.Builder) extends FileStore(builder) {
 
   private var failBit = false
   private var sz = 0
@@ -46,7 +46,12 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
     var store: TestableFileStore = null
     before {
       FileUtils.forceMkdir(new File("data"))
-      store = new TestableFileStore("data")
+
+      val fileStoreBuilder: FileStore.Builder = new FileStore.Builder("data")
+        .withShutdownWaitInSeconds(60)
+        .withThreadPoolSize(1)
+
+      store = new TestableFileStore(fileStoreBuilder)
     }
 
     after {
@@ -57,6 +62,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       Given(" a simple blob")
       val blob = Support.newBlob()
       When("it is stored using the given store")
+      store.throwError(false)
       store.store(blob)
       Then("it should successfully store it")
       Thread.sleep(50)
@@ -94,7 +100,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       Then("it should successfully read it")
       read.get().getKey should equal("key1")
       read.get().getData should equal("""{"key":"value"}""".getBytes)
-      read.get().getMetadata.asScala should equal(Map[String, String]("a"->"b", "c"->"d"))
+      read.get().getMetadata.asScala should equal(Map[String, String]("a" -> "b", "c" -> "d"))
     }
     it("should return an empty object if timeout occurs before the read") {
       Given(" a store with blob already in it")
@@ -120,12 +126,31 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       When("when an instance of file store is initialized")
       Then("it should fail initialization for non-existent directory")
       intercept[IllegalArgumentException] {
-        new FileStore("non-existent-directory")
+        new FileStore.Builder("non-existent-directory").build()
       }
       And("it should fail initialization for invalid directory")
       intercept[IllegalArgumentException] {
-        new FileStore("data/somefile")
+        new FileStore.Builder("data/somefile").build()
       }
+    }
+    it("should have autoShutdownHook when manual shutdown is disabled") {
+      Given("manual shutdown as false")
+      When("when an instance of file store is initialized")
+      Then("it should have a shutdown hook")
+      store.shutdownHook should not be (null)
+      val isHookRemoved: Boolean = Runtime.getRuntime.removeShutdownHook(store.shutdownHook)
+      And("it should have a shutdown hook attached to autoShutdownHooks")
+      isHookRemoved should be(true)
+    }
+    it("should have autoShutdownHook when manual shutdown is enabled") {
+      Given("manual shutdown as true")
+      When("when an instance of file store is initialized")
+      val fileStore: FileStore = new FileStore.Builder("data")
+        .withManualShutdown()
+        .build()
+
+      Then("it should not have shutdown hook")
+      fileStore.shutdownHook should be(null)
     }
   }
 }

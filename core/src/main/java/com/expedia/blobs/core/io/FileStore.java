@@ -23,39 +23,44 @@ import com.expedia.blobs.core.SimpleBlob;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Optional;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileStore extends AsyncSupport {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileStore.class);
     private final File directory;
     private final Gson gson = new GsonBuilder().create();
     private final Type mapType = new TypeToken<Map<String, String>>() {
     }.getType();
     private final Charset Utf8 = Charset.forName("UTF-8");
+    ShutdownHook shutdownHook;
 
-    public FileStore(String directory) {
-        this(new File(directory));
-    }
+    protected FileStore(FileStore.Builder builder) {
+        super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
 
-    public FileStore(File directory) {
-        this(directory, Runtime.getRuntime().availableProcessors());
-    }
+        Validate.isTrue(builder.directory.exists() &&
+                builder.directory.isDirectory() &&
+                builder.directory.canWrite(), "Argument must be an existing directory that is writable");
 
-    public FileStore(File directory, int threadPoolSize) {
-        super(threadPoolSize);
+        this.directory = builder.directory;
 
-        Validate.isTrue(directory.exists() &&
-                                directory.isDirectory() &&
-                                directory.canWrite(), "Argument must be an existing directory that is writable");
-
-        this.directory = directory;
+        if (builder.manualShutdown) {
+            LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
+        } else {
+            shutdownHook = new ShutdownHook();
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
+        }
     }
 
     @Override
@@ -68,8 +73,7 @@ public class FileStore extends AsyncSupport {
                 FileUtils.writeByteArrayToFile(new File(blobPath), data);
                 FileUtils.write(new File(blobPath + ".meta.json"), gson.toJson(metadata), Utf8);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new BlobReadWriteException(e);
         }
     }
@@ -82,9 +86,61 @@ public class FileStore extends AsyncSupport {
             final Map<String, String> metadata = gson.fromJson(meta, mapType);
             final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
             return Optional.of(new SimpleBlob(key, metadata, data));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new BlobReadWriteException(e);
+        }
+    }
+
+    @Override
+    public void close() {
+        super.close();
+    }
+
+    /**
+     * Builds the {@link FileStore} with options
+     */
+
+    public static class Builder {
+        private final File directory;
+        private int threadPoolSize;
+        private int shutdownWaitInSeconds;
+        private boolean manualShutdown;
+
+        public Builder(String directory) {
+            this(new File(directory));
+        }
+
+        public Builder(File directory) {
+            this.directory = directory;
+            this.threadPoolSize = Runtime.getRuntime().availableProcessors();
+            this.shutdownWaitInSeconds = 60;
+            this.manualShutdown = false;
+        }
+
+        public Builder withThreadPoolSize(int threadPoolSize) {
+            this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        public Builder withShutdownWaitInSeconds(int shutdownWaitInSeconds) {
+            this.shutdownWaitInSeconds = shutdownWaitInSeconds;
+            return this;
+        }
+
+        public Builder withManualShutdown() {
+            this.manualShutdown = true;
+            return this;
+        }
+
+        public FileStore build() {
+            return new FileStore(this);
+        }
+    }
+
+    private class ShutdownHook extends Thread {
+        @Override
+        public void run() {
+            FileStore.this.close();
         }
     }
 }
