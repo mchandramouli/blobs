@@ -15,11 +15,12 @@
  *      limitations under the License.
  *
  */
-package com.expedia.blobs.core.io;
+package com.expedia.blobs.stores.io;
 
 import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.SimpleBlob;
+import com.expedia.blobs.core.io.AsyncSupport;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;

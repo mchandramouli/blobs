@@ -1,15 +1,21 @@
-package com.expedia.blobs.core.io
+package com.expedia.blobs.stores.io
 
 import java.io.{File, IOException}
 import java.util.Optional
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.expedia.blobs.core.{Blob, BlobReadWriteException}
+import com.expedia.blobs.core.{Blob, BlobReadWriteException, SimpleBlob}
 
 import scala.collection.JavaConverters._
 import org.parboiled.common.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
+
+object Support {
+  def newBlob(): Blob = new SimpleBlob("key1",
+    Map[String, String]("a"->"b", "c" -> "d").asJava,
+    """{"key":"value"}""".getBytes)
+}
 
 class TestableFileStore(builder: FileStore.Builder) extends FileStore(builder) {
 

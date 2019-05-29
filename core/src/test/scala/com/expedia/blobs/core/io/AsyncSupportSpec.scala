@@ -93,6 +93,16 @@ class AsyncSupportSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       Thread.sleep(10)
       blobRead.get should be(true)
     }
+    it("should try to read a blob and returns empty on exception") {
+      Given(" a store with blob already in it")
+      val blob = Support.newBlob()
+      store ++ blob
+      store.throwError(true)
+      When("it tries to read from the store")
+      val readBlob = store.read("key5")
+      Then("it should return empty blob")
+      readBlob should equal(Optional.empty())
+    }
     it("should read a blob and return before a given timeout") {
       Given(" a store with blob already in it")
       val blob = Support.newBlob()
