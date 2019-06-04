@@ -6,10 +6,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.expedia.blobs.core.{Blob, BlobReadWriteException, SimpleBlob}
-
-import scala.collection.JavaConverters._
 import org.parboiled.common.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
+
+import scala.collection.JavaConverters._
 
 object Support {
   def newBlob(): Blob = new SimpleBlob("key1",
