@@ -27,12 +27,14 @@ import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.SimpleBlob;
 import com.expedia.blobs.core.io.AsyncSupport;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
@@ -44,20 +46,17 @@ public class S3BlobStore extends AsyncSupport {
     private final TransferManager transferManager;
     ShutdownHook shutdownHook;
 
-    protected S3BlobStore(S3BlobStore.Builder builder) {
+    S3BlobStore(S3BlobStore.Builder builder) {
         super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
 
-        Validate.notNull(builder.transferManager);
         this.transferManager = builder.transferManager;
-
-        Validate.notEmpty(builder.bucketName);
         this.bucketName = builder.bucketName;
 
-        if (builder.manualShutdown) {
-            LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
-        } else {
+        if (builder.closeOnShutdown) {
             this.shutdownHook = new ShutdownHook();
             Runtime.getRuntime().addShutdownHook(this.shutdownHook);
+        } else {
+            LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
         }
     }
 
@@ -119,14 +118,14 @@ public class S3BlobStore extends AsyncSupport {
         private final TransferManager transferManager;
         private int threadPoolSize;
         private int shutdownWaitInSeconds;
-        private boolean manualShutdown;
+        private boolean closeOnShutdown;
 
         public Builder(String bucketName, TransferManager transferManager) {
             this.bucketName = bucketName;
             this.transferManager = transferManager;
             this.threadPoolSize = Runtime.getRuntime().availableProcessors();
             this.shutdownWaitInSeconds = 60;
-            this.manualShutdown = false;
+            this.closeOnShutdown = true;
         }
 
         /**
@@ -144,13 +143,16 @@ public class S3BlobStore extends AsyncSupport {
             return this;
         }
 
-        public Builder withManualShutdown() {
-            this.manualShutdown = true;
+        public Builder disableAutoShutdown() {
+            this.closeOnShutdown = false;
             return this;
         }
 
 
         public S3BlobStore build() {
+
+            Validate.notNull(transferManager);
+            Validate.notEmpty(bucketName);
             return new S3BlobStore(this);
         }
     }

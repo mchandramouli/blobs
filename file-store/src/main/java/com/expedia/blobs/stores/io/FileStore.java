@@ -47,20 +47,16 @@ public class FileStore extends AsyncSupport {
     private final Charset Utf8 = Charset.forName("UTF-8");
     ShutdownHook shutdownHook;
 
-    protected FileStore(FileStore.Builder builder) {
+    FileStore(FileStore.Builder builder) {
         super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
-
-        Validate.isTrue(builder.directory.exists() &&
-                builder.directory.isDirectory() &&
-                builder.directory.canWrite(), "Argument must be an existing directory that is writable");
 
         this.directory = builder.directory;
 
-        if (builder.manualShutdown) {
-            LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
-        } else {
+        if (builder.closeOnShutdown) {
             shutdownHook = new ShutdownHook();
             Runtime.getRuntime().addShutdownHook(shutdownHook);
+        } else {
+            LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
         }
     }
 
@@ -105,7 +101,7 @@ public class FileStore extends AsyncSupport {
         private final File directory;
         private int threadPoolSize;
         private int shutdownWaitInSeconds;
-        private boolean manualShutdown;
+        private boolean closeOnShutdown;
 
         public Builder(String directory) {
             this(new File(directory));
@@ -115,7 +111,7 @@ public class FileStore extends AsyncSupport {
             this.directory = directory;
             this.threadPoolSize = Runtime.getRuntime().availableProcessors();
             this.shutdownWaitInSeconds = 60;
-            this.manualShutdown = false;
+            this.closeOnShutdown = true;
         }
 
         public Builder withThreadPoolSize(int threadPoolSize) {
@@ -128,12 +124,17 @@ public class FileStore extends AsyncSupport {
             return this;
         }
 
-        public Builder withManualShutdown() {
-            this.manualShutdown = true;
+        public Builder disableAutoShutdown() {
+            this.closeOnShutdown = false;
             return this;
         }
 
         public FileStore build() {
+
+            Validate.isTrue(directory.exists() &&
+                    directory.isDirectory() &&
+                    directory.canWrite(), "Argument must be an existing directory that is writable");
+
             return new FileStore(this);
         }
     }

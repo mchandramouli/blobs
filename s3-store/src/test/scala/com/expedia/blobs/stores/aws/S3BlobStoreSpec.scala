@@ -173,9 +173,9 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     verify(transferManager, s3Client, s3Object, objectMetadata)
     error shouldBe a [RuntimeException]
   }
-  it("should have autoShutdownHook when manual shutdown is disabled"){
-    Given("manual shutdown as false")
-    When("when an instance of file store is initialized")
+  it("should have autoShutdownHook when disableShutdown is disabled"){
+    Given("disableShutdown as false")
+    When("when an instance of S3 store is initialized")
     val transferManager = mock[TransferManager]
     val s3BlobStore: S3BlobStore = new S3BlobStore.Builder("blobs",transferManager).build()
     Then("it should have a shutdown hook")
@@ -184,12 +184,12 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     And("it should have a shutdown hook attached to autoShutdownHooks")
     isHookRemoved should be(true)
   }
-  it("should have autoShutdownHook when manual shutdown is enabled"){
-    Given("manual shutdown as true")
-    When("when an instance of file store is initialized")
+  it("should have autoShutdownHook when disableShutdown is enabled"){
+    Given("disable shutdown as true")
+    When("when an instance of S3 store is initialized")
     val transferManager = mock[TransferManager]
     val s3BlobStore: S3BlobStore = new S3BlobStore.Builder("blobs",transferManager)
-      .withManualShutdown()
+      .disableAutoShutdown()
       .build()
 
     Then("it should not have shutdown hook")

@@ -139,8 +139,8 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
         new FileStore.Builder("data/somefile").build()
       }
     }
-    it("should have autoShutdownHook when manual shutdown is disabled") {
-      Given("manual shutdown as false")
+    it("should have autoShutdownHook when disableShutdown is disabled") {
+      Given("disable shutdown as false")
       When("when an instance of file store is initialized")
       Then("it should have a shutdown hook")
       store.shutdownHook should not be (null)
@@ -148,11 +148,11 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       And("it should have a shutdown hook attached to autoShutdownHooks")
       isHookRemoved should be(true)
     }
-    it("should have autoShutdownHook when manual shutdown is enabled") {
-      Given("manual shutdown as true")
+    it("should have autoShutdownHook when disableShutdown is enabled") {
+      Given("disable shutdown as true")
       When("when an instance of file store is initialized")
       val fileStore: FileStore = new FileStore.Builder("data")
-        .withManualShutdown()
+        .disableAutoShutdown()
         .build()
 
       Then("it should not have shutdown hook")
