@@ -21,6 +21,7 @@ import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.SimpleBlob;
 import com.expedia.blobs.core.io.AsyncSupport;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -45,7 +46,10 @@ public class FileStore extends AsyncSupport {
     private final Type mapType = new TypeToken<Map<String, String>>() {
     }.getType();
     private final Charset Utf8 = Charset.forName("UTF-8");
-    ShutdownHook shutdownHook;
+    private Thread shutdownHook = new Thread(() -> this.close());
+
+    @VisibleForTesting
+    Boolean shutdownHookAdded = false;
 
     FileStore(FileStore.Builder builder) {
         super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
@@ -53,7 +57,7 @@ public class FileStore extends AsyncSupport {
         this.directory = builder.directory;
 
         if (builder.closeOnShutdown) {
-            shutdownHook = new ShutdownHook();
+            shutdownHookAdded = builder.closeOnShutdown;
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         } else {
             LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
@@ -136,13 +140,6 @@ public class FileStore extends AsyncSupport {
                     directory.canWrite(), "Argument must be an existing directory that is writable");
 
             return new FileStore(this);
-        }
-    }
-
-    private class ShutdownHook extends Thread {
-        @Override
-        public void run() {
-            FileStore.this.close();
         }
     }
 }

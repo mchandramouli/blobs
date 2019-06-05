@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
@@ -44,7 +45,10 @@ public class S3BlobStore extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(S3BlobStore.class);
     private final String bucketName;
     private final TransferManager transferManager;
-    ShutdownHook shutdownHook;
+    private Thread shutdownHook = new Thread(() -> this.close());
+
+    @VisibleForTesting
+    Boolean shutdownHookAdded = false;
 
     S3BlobStore(S3BlobStore.Builder builder) {
         super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
@@ -53,7 +57,7 @@ public class S3BlobStore extends AsyncSupport {
         this.bucketName = builder.bucketName;
 
         if (builder.closeOnShutdown) {
-            this.shutdownHook = new ShutdownHook();
+            this.shutdownHookAdded = builder.closeOnShutdown;
             Runtime.getRuntime().addShutdownHook(this.shutdownHook);
         } else {
             LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
@@ -154,13 +158,6 @@ public class S3BlobStore extends AsyncSupport {
             Validate.notNull(transferManager);
             Validate.notEmpty(bucketName);
             return new S3BlobStore(this);
-        }
-    }
-
-    private class ShutdownHook extends Thread {
-        @Override
-        public void run() {
-            S3BlobStore.this.close();
         }
     }
 }

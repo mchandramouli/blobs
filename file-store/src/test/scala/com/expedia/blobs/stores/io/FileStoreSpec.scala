@@ -143,10 +143,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       Given("disable shutdown as false")
       When("when an instance of file store is initialized")
       Then("it should have a shutdown hook")
-      store.shutdownHook should not be (null)
-      val isHookRemoved: Boolean = Runtime.getRuntime.removeShutdownHook(store.shutdownHook)
-      And("it should have a shutdown hook attached to autoShutdownHooks")
-      isHookRemoved should be(true)
+      store.shutdownHookAdded should equal(true)
     }
     it("should have autoShutdownHook when disableShutdown is enabled") {
       Given("disable shutdown as true")
@@ -156,7 +153,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
         .build()
 
       Then("it should not have shutdown hook")
-      fileStore.shutdownHook should be(null)
+      fileStore.shutdownHookAdded should equal(false)
     }
   }
 }

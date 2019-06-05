@@ -179,10 +179,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val transferManager = mock[TransferManager]
     val s3BlobStore: S3BlobStore = new S3BlobStore.Builder("blobs",transferManager).build()
     Then("it should have a shutdown hook")
-    s3BlobStore.shutdownHook should not be (null)
-    val isHookRemoved: Boolean = Runtime.getRuntime.removeShutdownHook(s3BlobStore.shutdownHook)
-    And("it should have a shutdown hook attached to autoShutdownHooks")
-    isHookRemoved should be(true)
+    s3BlobStore.shutdownHookAdded should equal(true)
   }
   it("should have autoShutdownHook when disableShutdown is enabled"){
     Given("disable shutdown as true")
@@ -193,6 +190,6 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
       .build()
 
     Then("it should not have shutdown hook")
-    s3BlobStore.shutdownHook should be(null)
+    s3BlobStore.shutdownHookAdded should equal(false)
   }
 }
