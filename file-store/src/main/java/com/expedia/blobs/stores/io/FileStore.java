@@ -65,7 +65,7 @@ public class FileStore extends AsyncSupport {
     }
 
     @Override
-    protected void storeInternal(Blob blob) {
+    public void storeInternal(Blob blob) {
         try {
             if (blob.getSize() > 0) {
                 final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), blob.getKey());
@@ -80,7 +80,7 @@ public class FileStore extends AsyncSupport {
     }
 
     @Override
-    protected Optional<Blob> readInternal(String key) {
+    public Optional<Blob> readInternal(String key) {
         try {
             final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), key);
             final String meta = FileUtils.readFileToString(new File(blobPath + ".meta.json"), Utf8);
