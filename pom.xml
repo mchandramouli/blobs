@@ -11,6 +11,7 @@
     <modules>
         <module>core</module>
         <module>s3-store</module>
+        <module>file-store</module>
         <module>agent-store</module>
     </modules>
 

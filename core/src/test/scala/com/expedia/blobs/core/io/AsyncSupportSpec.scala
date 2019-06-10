@@ -16,7 +16,7 @@ object Support {
     """{"key":"value"}""".getBytes)
 }
 
-class InMemoryStore extends AsyncSupport {
+class InMemoryStore extends AsyncSupport(Runtime.getRuntime.availableProcessors(), 60) {
   
   private var blobs = List[Blob]()
   private var failBit = false
@@ -64,6 +64,7 @@ class AsyncSupportSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       Given(" a simple blob")
       val blob = Support.newBlob()
       When("it is stored using the given store")
+      store.throwError(false)
       store.store(blob)
       Then("it should successfully store it")
       Thread.sleep(10)
@@ -91,6 +92,16 @@ class AsyncSupportSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       Then("it should successfully read it")
       Thread.sleep(10)
       blobRead.get should be(true)
+    }
+    it("should try to read a blob and returns empty on exception") {
+      Given(" a store with blob already in it")
+      val blob = Support.newBlob()
+      store ++ blob
+      store.throwError(true)
+      When("it tries to read from the store")
+      val readBlob = store.read("key5")
+      Then("it should return empty blob")
+      readBlob should equal(Optional.empty())
     }
     it("should read a blob and return before a given timeout") {
       Given(" a store with blob already in it")

@@ -27,12 +27,15 @@ import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.SimpleBlob;
 import com.expedia.blobs.core.io.AsyncSupport;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
@@ -42,22 +45,25 @@ public class S3BlobStore extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(S3BlobStore.class);
     private final String bucketName;
     private final TransferManager transferManager;
+    private Thread shutdownHook = new Thread(() -> this.close());
 
-    public S3BlobStore(String bucketName, TransferManager transferManager) {
-        this(bucketName, transferManager, Runtime.getRuntime().availableProcessors());
+    @VisibleForTesting
+    Boolean shutdownHookAdded = false;
+
+    S3BlobStore(S3BlobStore.Builder builder) {
+        super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
+
+        this.transferManager = builder.transferManager;
+        this.bucketName = builder.bucketName;
+
+        if (builder.closeOnShutdown) {
+            this.shutdownHookAdded = builder.closeOnShutdown;
+            Runtime.getRuntime().addShutdownHook(this.shutdownHook);
+        } else {
+            LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
+        }
     }
 
-    public S3BlobStore(String bucketName,
-                       TransferManager transferManager,
-                       int threadPoolSize) {
-        super(threadPoolSize);
-
-        Validate.notNull(transferManager);
-        this.transferManager = transferManager;
-
-        Validate.notEmpty(bucketName);
-        this.bucketName = bucketName;
-    }
 
     @Override
     protected void storeInternal(Blob blob) {
@@ -75,11 +81,10 @@ public class S3BlobStore extends AsyncSupport {
 
             final Upload upload = transferManager.upload(putRequest);
             //upload.waitForUploadResult();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             final String message = String.format("Unable to upload blob to S3 for  key %s : %s",
-                                                 blob.getKey(),
-                                                 e.getMessage());
+                    blob.getKey(),
+                    e.getMessage());
             throw new BlobReadWriteException(message, e);
         }
     }
@@ -91,16 +96,68 @@ public class S3BlobStore extends AsyncSupport {
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
             try (final InputStream is = s3Object.getObjectContent()) {
                 return Optional.of(new SimpleBlob(key,
-                                                  objectMetadata == null ? new HashMap<>(0) : objectMetadata,
-                                                  readInputStream(is)));
+                        objectMetadata == null ? new HashMap<>(0) : objectMetadata,
+                        readInputStream(is)));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new BlobReadWriteException(e);
         }
     }
 
     protected byte[] readInputStream(InputStream is) throws IOException {
         return IOUtils.toByteArray(is);
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        this.transferManager.shutdownNow();
+    }
+
+    /**
+     * Builds the {@link S3BlobStore} with options
+     */
+    public static class Builder {
+        private final String bucketName;
+        private final TransferManager transferManager;
+        private int threadPoolSize;
+        private int shutdownWaitInSeconds;
+        private boolean closeOnShutdown;
+
+        public Builder(String bucketName, TransferManager transferManager) {
+            this.bucketName = bucketName;
+            this.transferManager = transferManager;
+            this.threadPoolSize = Runtime.getRuntime().availableProcessors();
+            this.shutdownWaitInSeconds = 60;
+            this.closeOnShutdown = true;
+        }
+
+        /**
+         * @param threadPoolSize 1 or more
+         * @return {@link S3BlobStore.Builder}
+         */
+
+        public Builder withThreadPoolSize(int threadPoolSize) {
+            this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        public Builder withShutdownWaitInSeconds(int shutdownWaitInSeconds) {
+            this.shutdownWaitInSeconds = shutdownWaitInSeconds;
+            return this;
+        }
+
+        public Builder disableAutoShutdown() {
+            this.closeOnShutdown = false;
+            return this;
+        }
+
+
+        public S3BlobStore build() {
+
+            Validate.notNull(transferManager);
+            Validate.notEmpty(bucketName);
+            return new S3BlobStore(this);
+        }
     }
 }

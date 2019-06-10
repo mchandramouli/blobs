@@ -31,21 +31,15 @@ public abstract class AsyncSupport implements BlobStore, Closeable {
     private final ManagedAsyncOperation managedAsyncOperation;
 
     /**
-     * Initializes {@link AsyncSupport} with threads equal to the number of processors available
-     * See Runtime#availableProcessors()
-     */
-    public AsyncSupport() {
-        this(Runtime.getRuntime().availableProcessors());
-    }
-
-    /**
-     * Initializes {@link AsyncSupport} instance with a threadpool if the number of
+     * Initializes {@link AsyncSupport} instance with a threadpool
+     * and the time it waits before it is forcefully shut down(in seconds) if the number of
      * threads given are greater than zero
-     *
      * @param threadPoolSize 1 or more
+     * @param shutdownWaitInSeconds Waiting time before the threadpool is forcefully shutdown
      */
-    public AsyncSupport(int threadPoolSize) {
-        this.managedAsyncOperation = new ManagedAsyncOperation(threadPoolSize);
+
+    public AsyncSupport(int threadPoolSize, int shutdownWaitInSeconds){
+        this.managedAsyncOperation = new ManagedAsyncOperation(threadPoolSize, shutdownWaitInSeconds);
     }
 
     @Override

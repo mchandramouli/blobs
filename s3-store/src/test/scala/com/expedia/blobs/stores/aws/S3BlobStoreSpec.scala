@@ -1,9 +1,7 @@
 package com.expedia.blobs.stores.aws
 
-import java.io.{ByteArrayInputStream, IOException, InputStream}
+import java.io.{ByteArrayInputStream, InputStream}
 import java.util.Optional
-import java.util.function.BiConsumer
-
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest, S3Object, S3ObjectInputStream}
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
@@ -23,7 +21,7 @@ object Support {
     """{"key":"value"}""".getBytes)
 }
 
-class ErrorHandlingS3BlobStore(bucket: String, trfManager: TransferManager) extends S3BlobStore(bucket, trfManager) {
+class ErrorHandlingS3BlobStore(builder: S3BlobStore.Builder) extends S3BlobStore(builder) {
   var error: Throwable = _
   override def store(b: Blob): Unit = {
     super.store(b, (t: Void, u: Throwable) => error = u)
@@ -47,16 +45,16 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
       When("an instance of s3 store is created")
       Then("it should fail for invalid values")
       intercept[IllegalArgumentException] {
-        new S3BlobStore(null, transferManager, poolSz)
+        new S3BlobStore.Builder(null, transferManager).withThreadPoolSize(poolSz).build()
       }
       intercept[IllegalArgumentException] {
-        new S3BlobStore(bucketName, null, poolSz)
+        new S3BlobStore.Builder(bucketName, null).withThreadPoolSize(poolSz).build()
       }
       intercept[IllegalArgumentException] {
-        new S3BlobStore(bucketName, transferManager, 0)
+        new S3BlobStore.Builder(bucketName, transferManager).withThreadPoolSize(0).build()
       }
       And("create an instance if all arguments are valid")
-      new S3BlobStore(bucketName, transferManager, poolSz) should not be null
+      new S3BlobStore.Builder(bucketName, transferManager).withThreadPoolSize(poolSz).build() should not be null
     }
   }
   it("should create a put request and submit it to transfer manager") {
@@ -64,7 +62,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val transferManager = mock[TransferManager]
     val poolSz = 1
     val bucketName = "blobs"
-    val store = new S3BlobStore(bucketName, transferManager, poolSz)
+    val store = new S3BlobStore.Builder(bucketName, transferManager).withThreadPoolSize(poolSz).build()
     val blob = Support.newBlob()
     val result = mock[Upload]
     expecting {
@@ -82,7 +80,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val transferManager = mock[TransferManager]
     val poolSz = 1
     val bucketName = "blobs"
-    val store = new S3BlobStore(bucketName, transferManager, poolSz)
+    val store = new S3BlobStore.Builder(bucketName, transferManager).withThreadPoolSize(poolSz).build()
     val blob = Support.newBlob()
     val result = mock[Upload]
     val captured = EasyMock.newCapture[PutObjectRequest]
@@ -108,7 +106,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val transferManager = mock[TransferManager]
     val poolSz = 1
     val bucketName = "blobs"
-    val store = new ErrorHandlingS3BlobStore(bucketName, transferManager)
+    val store = new ErrorHandlingS3BlobStore(new S3BlobStore.Builder(bucketName, transferManager))
     val blob = Support.newBlob()
     val error = new RuntimeException
     expecting {
@@ -125,7 +123,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
   it("should read a blob from s3 and return the data as expected") {
     Given("a blob store and a mock transfer manager")
     val transferManager = mock[TransferManager]
-    val store = new ErrorHandlingS3BlobStore("blobs", transferManager)
+    val store = new ErrorHandlingS3BlobStore(new S3BlobStore.Builder("blobs", transferManager))
     val s3Client = mock[AmazonS3Client]
     val s3Object = mock[S3Object]
     val objectMetadata = mock[ObjectMetadata]
@@ -153,7 +151,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
   it("should handle any exception at read and return empty object") {
     Given("a blob store that fails on read")
     val transferManager = mock[TransferManager]
-    val store = new ErrorHandlingS3BlobStore("blobs", transferManager)
+    val store = new ErrorHandlingS3BlobStore(new S3BlobStore.Builder("blobs", transferManager))
     store.throwError()
     val s3Client = mock[AmazonS3Client]
     val s3Object = mock[S3Object]
@@ -174,5 +172,24 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     Thread.sleep(10)
     verify(transferManager, s3Client, s3Object, objectMetadata)
     error shouldBe a [RuntimeException]
+  }
+  it("should have autoShutdownHook when disableShutdown is disabled"){
+    Given("disableShutdown as false")
+    When("when an instance of S3 store is initialized")
+    val transferManager = mock[TransferManager]
+    val s3BlobStore: S3BlobStore = new S3BlobStore.Builder("blobs",transferManager).build()
+    Then("it should have a shutdown hook")
+    s3BlobStore.shutdownHookAdded should equal(true)
+  }
+  it("should have autoShutdownHook when disableShutdown is enabled"){
+    Given("disable shutdown as true")
+    When("when an instance of S3 store is initialized")
+    val transferManager = mock[TransferManager]
+    val s3BlobStore: S3BlobStore = new S3BlobStore.Builder("blobs",transferManager)
+      .disableAutoShutdown()
+      .build()
+
+    Then("it should not have shutdown hook")
+    s3BlobStore.shutdownHookAdded should equal(false)
   }
 }
