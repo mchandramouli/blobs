@@ -1,17 +1,23 @@
-package com.expedia.blobs.core.io
+package com.expedia.blobs.stores.io
 
 import java.io.{File, IOException}
 import java.util.Optional
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.expedia.blobs.core.{Blob, BlobReadWriteException}
-
-import scala.collection.JavaConverters._
+import com.expedia.blobs.core.{Blob, BlobReadWriteException, SimpleBlob}
 import org.parboiled.common.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
-class TestableFileStore(path: String) extends FileStore(path) {
+import scala.collection.JavaConverters._
+
+object Support {
+  def newBlob(): Blob = new SimpleBlob("key1",
+    Map[String, String]("a"->"b", "c" -> "d").asJava,
+    """{"key":"value"}""".getBytes)
+}
+
+class TestableFileStore(builder: FileStore.Builder) extends FileStore(builder) {
 
   private var failBit = false
   private var sz = 0
@@ -46,7 +52,12 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
     var store: TestableFileStore = null
     before {
       FileUtils.forceMkdir(new File("data"))
-      store = new TestableFileStore("data")
+
+      val fileStoreBuilder: FileStore.Builder = new FileStore.Builder("data")
+        .withShutdownWaitInSeconds(60)
+        .withThreadPoolSize(1)
+
+      store = new TestableFileStore(fileStoreBuilder)
     }
 
     after {
@@ -57,6 +68,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       Given(" a simple blob")
       val blob = Support.newBlob()
       When("it is stored using the given store")
+      store.throwError(false)
       store.store(blob)
       Then("it should successfully store it")
       Thread.sleep(50)
@@ -94,7 +106,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       Then("it should successfully read it")
       read.get().getKey should equal("key1")
       read.get().getData should equal("""{"key":"value"}""".getBytes)
-      read.get().getMetadata.asScala should equal(Map[String, String]("a"->"b", "c"->"d"))
+      read.get().getMetadata.asScala should equal(Map[String, String]("a" -> "b", "c" -> "d"))
     }
     it("should return an empty object if timeout occurs before the read") {
       Given(" a store with blob already in it")
@@ -120,12 +132,28 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       When("when an instance of file store is initialized")
       Then("it should fail initialization for non-existent directory")
       intercept[IllegalArgumentException] {
-        new FileStore("non-existent-directory")
+        new FileStore.Builder("non-existent-directory").build()
       }
       And("it should fail initialization for invalid directory")
       intercept[IllegalArgumentException] {
-        new FileStore("data/somefile")
+        new FileStore.Builder("data/somefile").build()
       }
+    }
+    it("should have autoShutdownHook when disableShutdown is disabled") {
+      Given("disable shutdown as false")
+      When("when an instance of file store is initialized")
+      Then("it should have a shutdown hook")
+      store.shutdownHookAdded should equal(true)
+    }
+    it("should have autoShutdownHook when disableShutdown is enabled") {
+      Given("disable shutdown as true")
+      When("when an instance of file store is initialized")
+      val fileStore: FileStore = new FileStore.Builder("data")
+        .disableAutoShutdown()
+        .build()
+
+      Then("it should not have shutdown hook")
+      fileStore.shutdownHookAdded should equal(false)
     }
   }
 }
