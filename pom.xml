@@ -10,9 +10,8 @@
 
     <modules>
         <module>core</module>
-        <module>s3-store</module>
-        <module>file-store</module>
-        <module>agent-store</module>
+        <module>haystack-blobs</module>
+        <module>stores</module>
     </modules>
 
     <scm>
@@ -73,7 +72,8 @@
         <scala-library.version>${scala.major.version}.${scala.minor.version}.${scala.tiny.version}</scala-library.version>
 
         <slf4j-api.version>1.7.25</slf4j-api.version>
-        <commons-lang.version>3.4</commons-lang.version>
+        <commons-lang3.version>3.4</commons-lang3.version>
+        <commons-lang.version>2.6</commons-lang.version>
         <commons-io.version>2.6</commons-io.version>
         <gson.version>2.8.5</gson.version>
         <guava.version>19.0</guava.version>
@@ -95,6 +95,7 @@
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <jacoco-maven-plugin.version>0.7.4.201502262128</jacoco-maven-plugin.version>
         <skipGpg>true</skipGpg>
+        <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
     </properties>
 
     <dependencyManagement>
@@ -123,13 +124,19 @@
             <dependency>
                 <groupId>commons-lang</groupId>
                 <artifactId>commons-lang</artifactId>
-                <version>2.6</version>
+                <version>${commons-lang.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
             </dependency>
 
             <dependency>
@@ -177,17 +184,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
-    </dependencies>
 
     <build>
         <resources>
