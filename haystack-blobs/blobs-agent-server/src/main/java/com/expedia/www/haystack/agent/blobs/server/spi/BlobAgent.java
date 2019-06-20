@@ -3,7 +3,7 @@ package com.expedia.www.haystack.agent.blobs.server.spi;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
 import com.expedia.www.haystack.agent.blobs.server.api.BlobAgentGrpcServer;
 import com.expedia.www.haystack.agent.core.Agent;
-import com.expedia.www.haystack.agent.core.config.ConfigurationHelpers;
+import com.google.common.annotations.VisibleForTesting;
 import com.typesafe.config.Config;
 import io.grpc.Server;
 import io.grpc.netty.NettyServerBuilder;
@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.ServiceLoader;
 
 public class BlobAgent implements Agent {
     private static Logger LOGGER = LoggerFactory.getLogger(BlobAgent.class);
     private final static String MAX_BLOB_SIZE_KB = "maxBlobSizeInKB";
+    private final static String DISPATCHERS = "dispatchers";
 
     private List<BlobDispatcher> dispatchers;
     private Server server;
@@ -62,12 +62,20 @@ public class BlobAgent implements Agent {
         }
     }
 
-    private List<BlobDispatcher> loadAndInitializeDispatchers(Config config, ClassLoader cl) {
+    @VisibleForTesting
+    List<BlobDispatcher> loadAndInitializeDispatchers(Config config, ClassLoader cl) {
         List<BlobDispatcher> dispatchers = new ArrayList<>();
         final ServiceLoader<BlobDispatcher> loadedDispatchers = ServiceLoader.load(BlobDispatcher.class, cl);
+        final Config dispatchersConfig = config.getConfig(DISPATCHERS);
 
         for (final BlobDispatcher blobDispatcher : loadedDispatchers) {
-            final Map<String, Config> blobsConfig = ConfigurationHelpers.readDispatchersConfig(config, getName());
+            final Config currentDispatcherConfig = dispatchersConfig.getConfig(blobDispatcher.getName());
+
+            blobDispatcher.initialize(currentDispatcherConfig);
+
+            dispatchers.add(blobDispatcher);
+
+            /*final Map<String, Config> blobsConfig = ConfigurationHelpers.readDispatchersConfig(config, getName());
             blobsConfig
                     .entrySet()
                     .stream()
@@ -75,7 +83,7 @@ public class BlobAgent implements Agent {
                     .forEach((conf) -> {
                         blobDispatcher.initialize(conf.getValue());
                         dispatchers.add(blobDispatcher);
-                    });
+                    });*/
         }
 
         Validate.notEmpty(dispatchers, "Blob agent dispatchers can't be an empty set");
