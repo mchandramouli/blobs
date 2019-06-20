@@ -36,10 +36,10 @@
                         <configuration>
                             <protocArtifact>com.google.protobuf:protoc:3.0.0</protocArtifact>
                             <includeDirectories>
-                                <include>./src/main/java</include>
+                                <include>./src/main/resources</include>
                             </includeDirectories>
                             <inputDirectories>
-                                <include>./src/main/java</include>
+                                <include>./src/main/resources</include>
                             </inputDirectories>
                             <outputDirectory>${project.build.directory}/generated-sources/proto</outputDirectory>
                             <outputTargets>

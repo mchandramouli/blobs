@@ -16,25 +16,24 @@
  *
  */
 syntax = "proto3";
+import "blob.proto";
 
-option java_package = "com.expedia.www.haystack.agent.blobs.grpc";
+option java_package = "com.expedia.www.haystack.agent.blobs.grpc.api";
 option java_multiple_files = true;
 
+message DispatchResult {
+    ResultCode code          = 1;  // result code is 0 for sucessful dipatch only
+    string error_message     = 2;  // error message if result code is non zero
 
-// Blob represents the data thats needs to be saved for a specific service call.
-message Blob {
-
-    string key                                  = 1; // unique key
-    string serviceName                          = 2; // name of the client
-    string operationName                        = 3;
-    map<string, string> metadata                = 4;
-    bytes content                               = 5;
-    string contentType                          = 6;
-    BlobType blobType                           = 7;
-    int64 timestamp                             = 8;
-
-    enum BlobType {
-        REQUEST = 0;
-        RESPONSE = 1;
+    enum ResultCode {
+        SUCCESS                     = 0;
+        UNKNOWN_ERROR               = 1;
+        RATE_LIMIT_ERROR            = 2;
+        MAX_SIZE_EXCEEDED_ERROR     = 3;
     }
+}
+
+// service interface to push blobs to haystack agent
+service BlobAgent {
+    rpc dispatch (Blob) returns (DispatchResult);    // dispatch blob to haystack agent
 }
