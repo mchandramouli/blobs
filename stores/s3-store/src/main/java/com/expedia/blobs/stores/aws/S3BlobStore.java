@@ -23,9 +23,9 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
-import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
-import com.expedia.blobs.core.SimpleBlob;
+import com.expedia.blobs.core.BlobType;
+import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
 
 import java.io.ByteArrayInputStream;
@@ -35,7 +35,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
@@ -66,13 +68,16 @@ public class S3BlobStore extends AsyncSupport {
 
 
     @Override
-    protected void storeInternal(Blob blob) {
+    public void storeInternal(BlobWriterImpl.BlobBuilder blobBuilder) {
+
+        final Blob blob = blobBuilder.build();
+
         try {
             final ObjectMetadata metadata = new ObjectMetadata();
-            blob.getMetadata().forEach(metadata::addUserMetadata);
+            blob.getMetadataMap().forEach(metadata::addUserMetadata);
 
-            final InputStream stream = new ByteArrayInputStream(blob.getData());
-            metadata.setContentLength(blob.getSize());
+            final InputStream stream = new ByteArrayInputStream(blob.getContent().toByteArray());
+            metadata.setContentLength(blob.getContent().size());
 
             final PutObjectRequest putRequest =
                     new PutObjectRequest(bucketName, blob.getKey(), stream, metadata)
@@ -90,14 +95,25 @@ public class S3BlobStore extends AsyncSupport {
     }
 
     @Override
-    protected Optional<Blob> readInternal(String key) {
+    public Optional<Blob> readInternal(String key) {
         try {
             final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, key);
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
             try (final InputStream is = s3Object.getObjectContent()) {
-                return Optional.of(new SimpleBlob(key,
-                        objectMetadata == null ? new HashMap<>(0) : objectMetadata,
-                        readInputStream(is)));
+
+                Map<String, String> metadata = objectMetadata == null ? new HashMap<>(0) : objectMetadata;
+                //TODO: Rethink about blobType and contentType. Should we keep them just in metadata?
+                final BlobType blobType = BlobType.from(metadata.get("blob-type"));
+
+                Blob blob = Blob.newBuilder()
+                        .setKey(key)
+                        .putAllMetadata(metadata)
+                        .setContent(ByteString.copyFrom(readInputStream(is)))
+                        .setBlobType(blobType.getType() == BlobType.REQUEST.getType() ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE)
+                        .setContentType(metadata.get("content-type"))
+                        .build();
+
+                return Optional.of(blob);
             }
         } catch (Exception e) {
             throw new BlobReadWriteException(e);

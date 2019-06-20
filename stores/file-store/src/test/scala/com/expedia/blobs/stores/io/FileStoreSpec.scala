@@ -5,16 +5,26 @@ import java.util.Optional
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.expedia.blobs.core.{Blob, BlobReadWriteException, SimpleBlob}
+import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl, ContentType}
+import com.expedia.www.haystack.agent.blobs.grpc.Blob
+import com.google.protobuf.ByteString
 import org.parboiled.common.FileUtils
+import org.scalatest.easymock.EasyMockSugar
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
 import scala.collection.JavaConverters._
 
 object Support {
-  def newBlob(): Blob = new SimpleBlob("key1",
-    Map[String, String]("a"->"b", "c" -> "d").asJava,
-    """{"key":"value"}""".getBytes)
+  def newBlob(): Blob = Blob.newBuilder()
+    .setKey("key1")
+    .setContent(ByteString.copyFrom("""{"key":"value"}""".getBytes))
+    .putAllMetadata(Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava)
+    .setBlobType(Blob.BlobType.REQUEST)
+    .setContentType(ContentType.JSON.getType)
+    .setServiceName("service")
+    .setOperationName("Operation")
+    .setOperationID("abcd")
+    .build()
 }
 
 class TestableFileStore(builder: FileStore.Builder) extends FileStore(builder) {
@@ -22,12 +32,12 @@ class TestableFileStore(builder: FileStore.Builder) extends FileStore(builder) {
   private var failBit = false
   private var sz = 0
 
-  override protected def storeInternal(blob: Blob): Unit = {
+  override protected def storeInternal(blobBuilder: BlobWriterImpl.BlobBuilder): Unit = {
     if (failBit) {
       throw new BlobReadWriteException("storage failure", new IOException())
     }
 
-    super.storeInternal(blob)
+    super.storeInternal(blobBuilder)
     sz += 1
   }
 
@@ -40,14 +50,14 @@ class TestableFileStore(builder: FileStore.Builder) extends FileStore(builder) {
     super.readInternal(key)
   }
 
-  def ++(blob: Blob): Unit = storeInternal(blob)
+  def ++(blobBuilder: BlobWriterImpl.BlobBuilder): Unit = storeInternal(blobBuilder)
 
   def throwError(bool: Boolean): Unit = failBit = bool
 
   def size(): Int = sz
 }
 
-class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers {
+class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers with EasyMockSugar {
   describe("a blob store backed by file storage") {
     var store: TestableFileStore = null
     before {
@@ -67,19 +77,29 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
     it("should store a blob") {
       Given(" a simple blob")
       val blob = Support.newBlob()
-      When("it is stored using the given store")
-      store.throwError(false)
-      store.store(blob)
-      Then("it should successfully store it")
-      Thread.sleep(50)
-      store.size should equal(1)
+
+      val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
+      expecting {
+        blobBuilder.build().andReturn(blob)
+      }
+
+      whenExecuting(blobBuilder) {
+        When("it is stored using the given store")
+        store.throwError(false)
+        store.store(blobBuilder)
+        Then("it should successfully store it")
+        Thread.sleep(50)
+        store.size should equal(1)
+      }
     }
     it("should fail to store a blob and exception is not propagated") {
       Given(" a simple blob")
-      val blob = Support.newBlob()
+      val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
       When("it is stored using the given store")
       store.throwError(true)
-      store.store(blob)
+      store.store(blobBuilder)
       Then("it should not successfully store it")
       Thread.sleep(50)
       store.size should equal(0)
@@ -87,44 +107,80 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
     it("should read a blob and call the callback") {
       Given(" a store with blob already in it")
       val blob = Support.newBlob()
-      store ++ blob
-      val blobRead = new AtomicBoolean(false)
-      When("it is read from the store with a callback")
-      store.read("key1", (t: Optional[Blob], e: Throwable) => {
-        blobRead.set(t.isPresent)
-      })
-      Then("it should successfully read it")
-      Thread.sleep(50)
-      blobRead.get should be(true)
+
+      val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
+      expecting {
+        blobBuilder.build().andReturn(blob)
+      }
+
+      whenExecuting(blobBuilder) {
+        store ++ blobBuilder
+        val blobRead = new AtomicBoolean(false)
+        When("it is read from the store with a callback")
+        store.read("key1", (t: Optional[Blob], e: Throwable) => {
+          blobRead.set(t.isPresent)
+        })
+        Then("it should successfully read it")
+        Thread.sleep(50)
+        blobRead.get should be(true)
+      }
     }
     it("should read a blob and return before a given timeout") {
       Given(" a store with blob already in it")
       val blob = Support.newBlob()
-      store ++ blob
-      When("it is read from the store with a timeout")
-      val read = store.read("key1", 100, TimeUnit.MILLISECONDS)
-      Then("it should successfully read it")
-      read.get().getKey should equal("key1")
-      read.get().getData should equal("""{"key":"value"}""".getBytes)
-      read.get().getMetadata.asScala should equal(Map[String, String]("a" -> "b", "c" -> "d"))
+
+      val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
+      expecting {
+        blobBuilder.build().andReturn(blob)
+      }
+
+      whenExecuting(blobBuilder) {
+        store ++ blobBuilder
+        When("it is read from the store with a timeout")
+        val read = store.read("key1", 100, TimeUnit.MILLISECONDS)
+        Then("it should successfully read it")
+        read.get().getKey should equal("key1")
+        read.get().getContent.toByteArray should equal("""{"key":"value"}""".getBytes)
+        read.get().getMetadataMap.asScala should equal(Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d"))
+      }
     }
     it("should return an empty object if timeout occurs before the read") {
       Given(" a store with blob already in it")
       val blob = Support.newBlob()
-      store ++ blob
-      When("it is read from the store with a timeout")
-      val read = store.read("key1", 1, TimeUnit.MILLISECONDS)
-      Then("it should return an empty object")
-      read.isPresent should be(false)
+
+      val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
+      expecting {
+        blobBuilder.build().andReturn(blob)
+      }
+
+      whenExecuting(blobBuilder) {
+        store ++ blobBuilder
+        When("it is read from the store with a timeout")
+        val read = store.read("key1", 1, TimeUnit.MILLISECONDS)
+        Then("it should return an empty object")
+        read.isPresent should be(false)
+      }
     }
     it("should return an empty object if the given key doesnt exist") {
       Given(" a store with some blob(s) already in it")
       val blob = Support.newBlob()
-      store ++ blob
-      When("when an unknown key is read")
-      val read = store.read("key2")
-      Then("it should return an empty object")
-      read.isPresent should be(false)
+
+      val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
+      expecting {
+        blobBuilder.build().andReturn(blob)
+      }
+
+      whenExecuting(blobBuilder) {
+        store ++ blobBuilder
+        When("when an unknown key is read")
+        val read = store.read("key2")
+        Then("it should return an empty object")
+        read.isPresent should be(false)
+      }
     }
     it("should validate the directory at initialization") {
       Given("some invalid directories")

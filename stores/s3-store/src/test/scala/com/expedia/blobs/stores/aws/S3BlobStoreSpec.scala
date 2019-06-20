@@ -2,10 +2,13 @@ package com.expedia.blobs.stores.aws
 
 import java.io.{ByteArrayInputStream, InputStream}
 import java.util.Optional
+
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest, S3Object, S3ObjectInputStream}
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
-import com.expedia.blobs.core.{Blob, BlobReadWriteException, SimpleBlob}
+import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl, ContentType}
+import com.expedia.www.haystack.agent.blobs.grpc.Blob
+import com.google.protobuf.ByteString
 import org.apache.commons.io.IOUtils
 import org.easymock.EasyMock
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
@@ -16,14 +19,21 @@ import org.easymock.EasyMock.{replay, verify}
 import scala.collection.JavaConverters._
 
 object Support {
-  def newBlob(): Blob = new SimpleBlob("key1",
-    Map[String, String]("a"->"b", "c" -> "d").asJava,
-    """{"key":"value"}""".getBytes)
+  def newBlob(): Blob = Blob.newBuilder()
+    .setKey("key1")
+    .setContent(ByteString.copyFrom("""{"key":"value"}""".getBytes))
+    .putAllMetadata(Map[String, String]("a" -> "b", "c" -> "d").asJava)
+    .setBlobType(Blob.BlobType.REQUEST)
+    .setContentType(ContentType.JSON.getType)
+    .setServiceName("service")
+    .setOperationName("Operation")
+    .setOperationID("abcd")
+    .build()
 }
 
 class ErrorHandlingS3BlobStore(builder: S3BlobStore.Builder) extends S3BlobStore(builder) {
   var error: Throwable = _
-  override def store(b: Blob): Unit = {
+  override def store(b: BlobWriterImpl.BlobBuilder): Unit = {
     super.store(b, (t: Void, u: Throwable) => error = u)
   }
   def getError: Throwable = error
@@ -64,16 +74,20 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val bucketName = "blobs"
     val store = new S3BlobStore.Builder(bucketName, transferManager).withThreadPoolSize(poolSz).build()
     val blob = Support.newBlob()
+
+    val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
+
     val result = mock[Upload]
     expecting {
       transferManager.upload(anyObject[PutObjectRequest]).andReturn(result).times(1)
+      blobBuilder.build().andReturn(blob)
     }
-    replay(transferManager)
+    replay(transferManager, blobBuilder)
     When("store is requested to store the blob")
-    store.store(blob)
+    store.store(blobBuilder)
     Thread.sleep(10)
     Then("it should create a put request and send it to the transfer manager")
-    verify(transferManager)
+    verify(transferManager, blobBuilder)
   }
   it("should create a put request and with right bucket, key, metadata and content") {
     Given("a blob and a valid s3 store")
@@ -82,24 +96,26 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val bucketName = "blobs"
     val store = new S3BlobStore.Builder(bucketName, transferManager).withThreadPoolSize(poolSz).build()
     val blob = Support.newBlob()
+    val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
     val result = mock[Upload]
     val captured = EasyMock.newCapture[PutObjectRequest]
     expecting {
       transferManager.upload(EasyMock.capture(captured)).andReturn(result).times(1)
+      blobBuilder.build().andReturn(blob)
     }
-    replay(transferManager)
+    replay(transferManager, blobBuilder)
     When("store is requested to store the blob")
-    store.store(blob)
+    store.store(blobBuilder)
     Thread.sleep(10)
     Then("it should create a put request and send it to the transfer manager")
-    verify(transferManager)
+    verify(transferManager, blobBuilder)
     val putObjectRequest = captured.getValue
     putObjectRequest should not be null
-    putObjectRequest.getMetadata.getContentLength should equal (blob.getSize)
+    putObjectRequest.getMetadata.getContentLength should equal (blob.getContent.size())
     putObjectRequest.getMetadata.getUserMetadata.asScala should equal(Map[String, String]("a"->"b", "c" -> "d"))
     putObjectRequest.getBucketName should equal ("blobs")
     putObjectRequest.getKey should equal("key1")
-    IOUtils.readFully(putObjectRequest.getInputStream, blob.getSize) should equal ("""{"key":"value"}""".getBytes)
+    IOUtils.readFully(putObjectRequest.getInputStream, blob.getContent.size()) should equal ("""{"key":"value"}""".getBytes)
   }
   it("should handle errors in store method and invoke the error handler") {
     Given("a blob and a valid s3 store")
@@ -108,16 +124,18 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val bucketName = "blobs"
     val store = new ErrorHandlingS3BlobStore(new S3BlobStore.Builder(bucketName, transferManager))
     val blob = Support.newBlob()
+    val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
     val error = new RuntimeException
     expecting {
       transferManager.upload(anyObject[PutObjectRequest]).andThrow(error).times(1)
+      blobBuilder.build().andReturn(blob)
     }
-    replay(transferManager)
+    replay(transferManager, blobBuilder)
     When("store is requested to store the blob and the transfer manager fails")
-    store.store(blob)
+    store.store(blobBuilder)
     Thread.sleep(10)
     Then("it should handle the error, wrap and send it to error handler")
-    verify(transferManager)
+    verify(transferManager, blobBuilder)
     store.getError.getCause shouldBe a [BlobReadWriteException]
   }
   it("should read a blob from s3 and return the data as expected") {
@@ -127,7 +145,7 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val s3Client = mock[AmazonS3Client]
     val s3Object = mock[S3Object]
     val objectMetadata = mock[ObjectMetadata]
-    val userMetadata = Map[String, String]("a" -> "b").asJava
+    val userMetadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
     val s3InputStream = mock[S3ObjectInputStream]
     expecting {
       transferManager.getAmazonS3Client.andReturn(s3Client).times(1)
@@ -144,8 +162,8 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val blob = optionalBlob.get()
     And("blob data should be as expected")
     blob.getKey should equal ("key1")
-    blob.getMetadata.asScala should equal (Map[String, String]("a" -> "b"))
-    blob.getData should equal ("""{"key":"value"}""".getBytes)
+    blob.getMetadataMap.asScala should equal (Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b"))
+    blob.getContent.toByteArray should equal ("""{"key":"value"}""".getBytes)
     verify(transferManager, s3Client, s3Object, objectMetadata)
   }
   it("should handle any exception at read and return empty object") {

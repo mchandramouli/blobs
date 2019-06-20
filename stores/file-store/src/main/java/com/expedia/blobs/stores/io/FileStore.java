@@ -17,10 +17,11 @@
  */
 package com.expedia.blobs.stores.io;
 
-import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobReadWriteException;
-import com.expedia.blobs.core.SimpleBlob;
+import com.expedia.blobs.core.BlobType;
+import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -33,6 +34,7 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.Validate;
@@ -65,12 +67,15 @@ public class FileStore extends AsyncSupport {
     }
 
     @Override
-    protected void storeInternal(Blob blob) {
+    protected void storeInternal(BlobWriterImpl.BlobBuilder blobSupplier) {
         try {
-            if (blob.getSize() > 0) {
+
+            final Blob blob = blobSupplier.build();
+
+            if (blob.getContent().size() > 0) {
                 final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), blob.getKey());
-                final byte[] data = blob.getData();
-                final Map<String, String> metadata = blob.getMetadata();
+                final byte[] data = blob.getContent().toByteArray();
+                final Map<String, String> metadata = blob.getMetadataMap();
                 FileUtils.writeByteArrayToFile(new File(blobPath), data);
                 FileUtils.write(new File(blobPath + ".meta.json"), gson.toJson(metadata), Utf8);
             }
@@ -86,7 +91,18 @@ public class FileStore extends AsyncSupport {
             final String meta = FileUtils.readFileToString(new File(blobPath + ".meta.json"), Utf8);
             final Map<String, String> metadata = gson.fromJson(meta, mapType);
             final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
-            return Optional.of(new SimpleBlob(key, metadata, data));
+
+            final BlobType blobType = BlobType.from(metadata.get("blob-type"));
+
+            Blob blob = Blob.newBuilder()
+                    .setKey(key)
+                    .putAllMetadata(metadata)
+                    .setContent(ByteString.copyFrom(data))
+                    .setBlobType(blobType.getType().equals(BlobType.REQUEST.getType()) ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE)
+                    .setContentType(metadata.get("content-type"))
+                    .build();
+
+            return Optional.of(blob);
         } catch (IOException e) {
             throw new BlobReadWriteException(e);
         }
