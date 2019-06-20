@@ -23,19 +23,33 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
-import com.expedia.blobs.core.Blob;
-import com.expedia.blobs.stores.aws.S3BlobStore;
+
+import com.amazonaws.services.s3.transfer.Upload;
+import com.expedia.blobs.core.*;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
-import com.expedia.www.haystack.agent.core.config.ConfigurationHelpers;
+import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+
 import com.google.common.annotations.VisibleForTesting;
+
 import com.typesafe.config.Config;
+
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
+
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     private final static Logger LOGGER = LoggerFactory.getLogger(S3Dispatcher.class);
@@ -47,12 +61,34 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     private final static String AWS_SECRET_KEY = "awsSecretKey";
     private final static String MAX_CONNECTIONS = "maxConnections";
     private final static String KEEP_ALIVE = "keepAlive";
-    private final static Long MULTIPART_UPLOAD_THRESHOLD = 5L * 1024 * 1024;
-    private final static String DISABLE_AUTO_SHUTDOWN = "disableAutoShutdown";
-    private final static String DISPATCHER_THREADPOOL_SIZE = "dispatcherThreadpoolSize";
-    private final static String DISPATCHER_SHUTDOWN_WAIT_TIME = "dispatcherShutdownWaitInSeconds";
 
-    private S3BlobStore s3BlobStore;
+    private final static String SHOULD_WAIT_FOR_UPLOAD = "shouldWaitForUpload";
+
+    private final static Long MULTIPART_UPLOAD_THRESHOLD = 5L * 1024 * 1024;
+
+    private final static String MAX_OUTSTANDING_REQUESTS = "maxOutstandingRequests";
+
+    private TransferManager transferManager;
+    private String bucketName;
+    private Boolean shouldWaitForUpload;
+    private int maxOutstandingRequests;
+    private Semaphore parallelUploadSemaphore;
+    private Executor executor;
+
+    @VisibleForTesting
+    S3Dispatcher(TransferManager transferManager, String bucketName, Boolean shouldWaitForUpload, int maxOutstandingRequests) {
+        this.transferManager = transferManager;
+        this.bucketName = bucketName;
+        this.shouldWaitForUpload = shouldWaitForUpload;
+        this.maxOutstandingRequests = maxOutstandingRequests;
+        this.parallelUploadSemaphore = new Semaphore(maxOutstandingRequests);
+        this.executor = directExecutor();
+    }
+
+    @VisibleForTesting
+    public S3Dispatcher() {
+
+    }
 
     @Override
     public String getName() {
@@ -61,36 +97,62 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
     @Override
     public void dispatch(Blob blob) {
-        s3BlobStore.storeInternal(blob);
+        if (parallelUploadSemaphore.tryAcquire()) {
+            CompletableFuture.runAsync(() -> dispatchInternal(blob), executor)
+                    .whenComplete((v, t) -> {
+                        if (t != null) {
+                            LOGGER.error(this.getClass().getSimpleName() + " failed to store blob ", t);
+                        }
+                    });
+        } else {
+            throw new RateLimitException("RateLimit is hit with outstanding(pending) requests=" + maxOutstandingRequests);
+        }
+    }
+
+    void dispatchInternal(Blob blob) {
+
+        try {
+            final ObjectMetadata metadata = new ObjectMetadata();
+            blob.getMetadataMap().forEach(metadata::addUserMetadata);
+            metadata.setContentLength(blob.getContent().size());
+
+            final InputStream stream = new ByteArrayInputStream(blob.getContent().toByteArray());
+
+            final PutObjectRequest putRequest =
+                    new PutObjectRequest(bucketName, blob.getKey(), stream, metadata)
+                            .withCannedAcl(CannedAccessControlList.BucketOwnerFullControl)
+                            .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey()));
+
+            final Upload upload = transferManager.upload(putRequest);
+
+            if (shouldWaitForUpload) {
+                upload.waitForUploadResult();
+            }
+        } catch (Exception e) {
+            final String message = String.format("Unable to upload blob to S3 for  key %s : %s",
+                    blob.getKey(),
+                    e.getMessage());
+            throw new BlobReadWriteException(message, e);
+        }
     }
 
     @Override
-    public void initialize(final Config config) {
-        Properties properties = ConfigurationHelpers.generatePropertiesFromMap(ConfigurationHelpers.convertToPropertyMap(config));
+    public void initialize(final Config s3Config) {
+        bucketName = s3Config.getString(BUCKET_NAME_PROPERTY);
+        Validate.notEmpty(bucketName, "s3 bucket name can't be empty");
 
-        S3BlobStore.Builder builder = new S3BlobStore.Builder(properties.getProperty(BUCKET_NAME_PROPERTY), createTransferManager(config));
+        maxOutstandingRequests = s3Config.getInt(MAX_OUTSTANDING_REQUESTS);
 
-        final Boolean disableAutoShutdown = Boolean.parseBoolean(properties.getProperty(DISABLE_AUTO_SHUTDOWN, "false"));
-        final String dispatcherThreadpoolSize = properties.getProperty(DISPATCHER_THREADPOOL_SIZE);
-        final String dispatcherShutdownWaitInSeconds = properties.getProperty(DISPATCHER_SHUTDOWN_WAIT_TIME);
+        Validate.isTrue(maxOutstandingRequests > 0, "max parallel uploads has to be greater than 0");
 
-        if (disableAutoShutdown) {
-            builder.disableAutoShutdown();
-        }
-        try {
-            if (dispatcherThreadpoolSize != null) {
-                builder.withThreadPoolSize(Integer.parseInt(dispatcherThreadpoolSize));
-            }
-            if (dispatcherShutdownWaitInSeconds != null) {
-                builder.withThreadPoolSize(Integer.parseInt(dispatcherShutdownWaitInSeconds));
-            }
-        } catch (Exception ex) {
-            LOGGER.warn("Failed to parse string config to integer. Using the default value.", ex);
-        }
+        shouldWaitForUpload = s3Config.hasPath(SHOULD_WAIT_FOR_UPLOAD) && s3Config.getBoolean(SHOULD_WAIT_FOR_UPLOAD);
+        this.parallelUploadSemaphore = new Semaphore(maxOutstandingRequests);
 
-        s3BlobStore = builder.build();
+        transferManager = createTransferManager(s3Config);
 
-        LOGGER.info("Successfully initialized the S3 dispatcher with config={}", config);
+        executor = directExecutor();
+
+        LOGGER.info("Successfully initialized the S3 dispatcher with config={}", s3Config);
     }
 
     private static TransferManager createTransferManager(final Config config) {
@@ -131,7 +193,10 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
     @Override
     public void close() {
-        s3BlobStore.close();
+        if (transferManager != null) {
+            LOGGER.info("shutting down the s3 dispatcher now..");
+            transferManager.shutdownNow();
+        }
     }
 
 }

@@ -1,6 +1,6 @@
 package com.expedia.www.haystack.agent.blobs.dispatcher.core;
 
-import com.expedia.blobs.core.Blob;
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.typesafe.config.Config;
 
 public interface BlobDispatcher extends AutoCloseable {

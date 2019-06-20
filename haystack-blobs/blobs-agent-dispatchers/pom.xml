@@ -42,11 +42,6 @@
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.major.minor.version}</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.expedia.www</groupId>
-            <artifactId>haystack-agent-api</artifactId>
-            <version>${haystack-agent-core.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -54,47 +49,57 @@
             <plugin>
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
-                <version>1.0</version>
                 <executions>
                     <execution>
                         <id>test</id>
                         <goals>
                             <goal>test</goal>
                         </goals>
+                        <configuration>
+                            <tagsToExclude>com.expedia.test.IntegrationSuite</tagsToExclude>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>integration-test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <tagsToInclude>com.expedia.test.IntegrationSuite</tagsToInclude>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <configuration>
-                    <archive>
-                        <index>true</index>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                        </manifest>
-                        <manifestEntries>
-                            <Application-Name>${project.name}</Application-Name>
-                            <Application-Version>${project.version}</Application-Version>
-                            <Implementation-Title>${project.name}</Implementation-Title>
-                            <Implementation-Vendor>Expedia</Implementation-Vendor>
-                            <Build-Jdk>${java.version}</Build-Jdk>
-                            <Build-Time>${maven.build.timestamp}</Build-Time>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.scalastyle</groupId>
+                <artifactId>scalastyle-maven-plugin</artifactId>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
-                <configuration>
-                    <source>${project.jdk.version}</source>
-                    <target>${project.jdk.version}</target>
-                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
