@@ -16,12 +16,14 @@
  */
 package com.expedia.www.haystack.agent.blobs.client;
 
-import com.expedia.blobs.core.*;
+import com.expedia.blobs.core.BlobReadWriteException;
+import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
 import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
+
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -29,12 +31,10 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+//TODO: Re-think about AgentClient name
 public class AgentClient extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentClient.class);
 
@@ -69,36 +69,16 @@ public class AgentClient extends AsyncSupport {
     }
 
     @Override
-    public void storeInternal(com.expedia.blobs.core.Blob blob) {
-        com.expedia.www.haystack.agent.blobs.grpc.Blob payload = parseBlob(new SimpleBlobContext("xyz", "abc"), blob);
+    public void storeInternal(BlobWriterImpl.BlobBuilder blobBuilder) {
+        Blob blob = blobBuilder.build();
         try {
-            stub.dispatch(payload, observer);
+            stub.dispatch(blob, observer);
         } catch (Exception e) {
             final String message = String.format("Unable to send blob to haystack-agent for  key %s : %s",
                     blob.getKey(),
                     e.getMessage());
             throw new BlobReadWriteException(message, e);
         }
-    }
-
-    private com.expedia.www.haystack.agent.blobs.grpc.Blob parseBlob(BlobContext blobContext, com.expedia.blobs.core.Blob blob) {
-        //TODO: remove blobContext and its related things
-        Map<String, String> metadata = blob.getMetadata();
-
-        BlobType blobType = BlobType.from(metadata.get("blob-type"));
-
-        return com.expedia.www.haystack.agent.blobs.grpc.Blob.newBuilder()
-                .setKey(blob.getKey())
-                .setServiceName(blobContext.getServiceName())
-                .setOperationName(blobContext.getOperationName())
-                .setContentType(metadata.get("content-type"))
-                .setBlobType(
-                        blobType.getType() == BlobType.REQUEST.getType() ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE
-                )
-                .setContent(ByteString.copyFrom(blob.getData()))
-                .setTimestamp(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
-                .putAllMetadata(metadata)
-                .build();
     }
 
     @Override
@@ -145,8 +125,11 @@ public class AgentClient extends AsyncSupport {
                 case RATE_LIMIT_ERROR:
                     LOGGER.error("Rate limit error received from agent");
                     break;
-                case ERROR:
+                case UNKNOWN_ERROR:
                     LOGGER.error("Unknown error received from agent");
+                    break;
+                case MAX_SIZE_EXCEEDED_ERROR:
+                    LOGGER.error("Size of the blog is greater than the set maximum size");
                     break;
                 default:
                     LOGGER.error("Unknown result received from agent: {}", value.getCode());
