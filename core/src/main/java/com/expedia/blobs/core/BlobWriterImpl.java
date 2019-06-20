@@ -24,13 +24,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
 import org.apache.commons.lang.Validate;
 
-final class WritableBlobs implements Blobs {
+public final class BlobWriterImpl implements BlobWriter {
     private final BlobContext context;
     private final BlobStore store;
 
-    WritableBlobs(BlobContext context, BlobStore store) {
+    BlobWriterImpl(BlobContext context, BlobStore store) {
         Validate.notNull(context);
         Validate.notNull(store);
         this.context = context;
@@ -38,7 +42,7 @@ final class WritableBlobs implements Blobs {
     }
 
     public void write(BlobType blobType, ContentType contentType,
-                 Consumer<OutputStream> dataCallback, Consumer<Metadata> metadataCallback) {
+                      Consumer<OutputStream> dataCallback, Consumer<Metadata> metadataCallback) {
         Validate.notNull(blobType);
         Validate.notNull(contentType);
         Validate.notNull(dataCallback);
@@ -58,8 +62,7 @@ final class WritableBlobs implements Blobs {
             try (final ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
                 dataCallback.accept(bos);
                 return bos.toByteArray();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new BlobReadWriteException(e);
             }
         };
@@ -67,55 +70,48 @@ final class WritableBlobs implements Blobs {
         write(blobKey, metadataSupplier, dataSupplier);
     }
 
-    private void write(String blobKey,
-                       Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier) {
-        final WritableBlob b = new WritableBlob(blobKey, metadataSupplier, dataSupplier);
-        store.store(b);
+    private void write(String blobKey, Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier) {
+        store.store(new BlobBuilder(blobKey, metadataSupplier, dataSupplier, context));
     }
 
-    public class WritableBlob implements Blob {
-        private final String key;
-        private final Supplier<Map<String, String>>  metadataSupplier;
-        private final Supplier<byte[]> dataSupplier;
-        private Map<String, String> metadata;
-        private byte[] data;
+    public static class BlobBuilder {
+        private Blob blob;
+        private String blobKey;
+        private Supplier<Map<String, String>> metadataSupplier;
+        private Supplier<byte[]> dataSupplier;
+        private BlobContext context;
 
-        WritableBlob(String fileKey, Supplier<Map<String, String>>  metadataSupplier,
-                            Supplier<byte[]> dataSupplier) {
-            this.key = fileKey;
+
+        BlobBuilder(String blobKey, Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier, BlobContext context) {
+            this.blobKey = blobKey;
             this.metadataSupplier = metadataSupplier;
             this.dataSupplier = dataSupplier;
+            this.context = context;
         }
 
-        public String getKey() {
-            return key;
+        @VisibleForTesting
+        BlobBuilder(Blob blob){
+            this.blob = blob;
         }
 
-        public Map<String, String> getMetadata() {
-            ensureMetadata();
-            return metadata;
-        }
+        public Blob build() {
+            if (blob == null) {
+                final Map<String, String> metadata = metadataSupplier.get();
+                final byte[] data = dataSupplier.get();
 
-        public byte[] getData() {
-            ensureData();
-            return data;
-        }
+                final Blob.BlobType blobType = BlobType.from(metadata.get("blob-type")) == BlobType.REQUEST ? Blob.BlobType.REQUEST : Blob.BlobType.RESPONSE;
 
-        public int getSize() {
-            ensureData();
-            return data.length;
-        }
-
-        private void ensureMetadata() {
-            if (metadata == null) {
-                metadata = metadataSupplier.get();
+                blob = Blob.newBuilder()
+                        .setKey(blobKey)
+                        .setServiceName(context.getServiceName())
+                        .setOperationName(context.getOperationName())
+                        .setBlobType(blobType)
+                        .setContentType(metadata.get("content-type"))
+                        .putAllMetadata(metadata)
+                        .setContent(ByteString.copyFrom(data))
+                        .build();
             }
-        }
-
-        private void ensureData() {
-            if (data == null) {
-                data = dataSupplier.get();
-            }
+            return blob;
         }
     }
 }

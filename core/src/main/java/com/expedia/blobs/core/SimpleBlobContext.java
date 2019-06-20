@@ -20,7 +20,7 @@ package com.expedia.blobs.core;
 import org.apache.commons.lang.Validate;
 
 /**
- * Simple class representing a {@link BlobContext} associated with {@link Blobs}
+ * Simple class representing a {@link BlobContext} associated with {@link BlobWriter}
  */
 public class SimpleBlobContext implements BlobContext {
     private final String serviceName;

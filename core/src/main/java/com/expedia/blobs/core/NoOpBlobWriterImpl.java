@@ -21,9 +21,9 @@ import java.io.OutputStream;
 import java.util.function.Consumer;
 
 /**
- * NoOp implementation of {@link Blobs}
+ * NoOp implementation of {@link BlobWriter}
  */
-class NoOpBlobs implements Blobs {
+class NoOpBlobWriterImpl implements BlobWriter {
     public void write(BlobType blobType, ContentType contentType,
                       Consumer<OutputStream> callback, Consumer<Metadata> metadata) {
         //nothing

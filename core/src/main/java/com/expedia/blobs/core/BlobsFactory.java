@@ -21,9 +21,9 @@ import java.util.function.Predicate;
 import org.apache.commons.lang.Validate;
 
 /**
- * Starting point to obtain an instance of {@link Blobs} to write
- * {@link Blob} instances to be saved using a given {@link BlobStore}
- * @param <T> Actual type of {@link BlobContext} associated with the {@link Blobs} instance
+ * Starting point to obtain an instance of {@link BlobWriter} to write
+ * {@link com.expedia.www.haystack.agent.blobs.grpc.Blob} instances to be saved using a given {@link BlobStore}
+ * @param <T> Actual type of {@link BlobContext} associated with the {@link BlobWriter} instance
  */
 public class BlobsFactory<T extends BlobContext> {
     private final BlobStore store;
@@ -51,7 +51,7 @@ public class BlobsFactory<T extends BlobContext> {
     }
 
     /**
-     * Creates a new instance of {@link Blobs} that can be used to write one or more {@link Blob} instances
+     * Creates a new instance of {@link BlobWriter} that can be used to write one or more {@link com.expedia.www.haystack.agent.blobs.grpc.Blob} instances
      * associated with the same {@link BlobContext}.
      *
      * This method will return a no-op Blobs instance if the given `context` does not qualify
@@ -59,11 +59,11 @@ public class BlobsFactory<T extends BlobContext> {
      * See {@link com.expedia.blobs.core.predicates.BlobsRateLimiter}
      *
      * @param context {@link BlobContext} associated with the Blobs
-     * @return valid {@link Blobs} instance
+     * @return valid {@link BlobWriter} instance
      */
-    public Blobs create(final T context) {
+    public BlobWriter create(final T context) {
         Validate.notNull(context);
-        return predicate.test(context) ? new WritableBlobs(context, store) : new NoOpBlobs();
+        return predicate.test(context) ? new BlobWriterImpl(context, store) : new NoOpBlobWriterImpl();
     }
 }
 

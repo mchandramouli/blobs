@@ -58,6 +58,11 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-grpc-models</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

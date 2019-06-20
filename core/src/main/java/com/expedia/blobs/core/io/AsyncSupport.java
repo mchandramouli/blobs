@@ -17,12 +17,14 @@
  */
 package com.expedia.blobs.core.io;
 
-import com.expedia.blobs.core.Blob;
 import com.expedia.blobs.core.BlobStore;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+
+import com.expedia.blobs.core.BlobWriterImpl;
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,10 +45,10 @@ public abstract class AsyncSupport implements BlobStore, Closeable {
     }
 
     @Override
-    public void store(Blob blob) {
-        store (blob, (v, t) -> {
+    public void store(BlobWriterImpl.BlobBuilder blobBuilder) {
+        store (blobBuilder, (v, t) -> {
             if (t != null) {
-                LOGGER.error(this.getClass().getSimpleName() + " failed to store blob " + blob.getKey(), t);
+                LOGGER.error(this.getClass().getSimpleName() + " failed to store blob ", t);
             }
         });
     }
@@ -79,11 +81,11 @@ public abstract class AsyncSupport implements BlobStore, Closeable {
         }
     }
 
-    protected final void store(Blob blob, BiConsumer<Void, Throwable> errorHandler) {
-        this.managedAsyncOperation.execute(() -> storeInternal(blob), errorHandler);
+    protected final void store(BlobWriterImpl.BlobBuilder blobBuilder, BiConsumer<Void, Throwable> errorHandler) {
+        this.managedAsyncOperation.execute(() -> storeInternal(blobBuilder), errorHandler);
     }
 
-    protected abstract void storeInternal(Blob blob);
+    protected abstract void storeInternal(BlobWriterImpl.BlobBuilder blobBuilder);
 
     protected abstract Optional<Blob> readInternal(String key);
 }
