@@ -94,7 +94,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       }
 
       exception.getMessage shouldEqual "s3 bucket region can't be empty"
-
+    }
 
     it("should dispatch the blob") {
       val transferManager = mock[TransferManager]
