@@ -68,7 +68,7 @@ public class S3BlobStore extends AsyncSupport {
 
 
     @Override
-    public void storeInternal(BlobWriterImpl.BlobBuilder blobBuilder) {
+    protected void storeInternal(BlobWriterImpl.BlobBuilder blobBuilder) {
 
         final Blob blob = blobBuilder.build();
 
@@ -95,7 +95,7 @@ public class S3BlobStore extends AsyncSupport {
     }
 
     @Override
-    public Optional<Blob> readInternal(String key) {
+    protected Optional<Blob> readInternal(String key) {
         try {
             final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, key);
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
