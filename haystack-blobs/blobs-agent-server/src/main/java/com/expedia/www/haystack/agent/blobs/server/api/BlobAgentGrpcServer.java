@@ -16,8 +16,6 @@
  */
 package com.expedia.www.haystack.agent.blobs.server.api;
 
-/*import com.codahale.metrics.Meter;
-import com.codahale.metrics.Timer;*/
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
@@ -37,36 +35,20 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
     private final Logger LOGGER = LoggerFactory.getLogger(BlobAgentGrpcServer.class);
 
     private final List<BlobDispatcher> dispatchers;
-    /*private final Timer dispatchTimer;
-    private final Meter dispatchFailureMeter;*/
     private final int maxBlobSizeInBytes;
 
     public BlobAgentGrpcServer(final List<BlobDispatcher> dispatchers, final int maxBlobSizeInBytes) {
-        /*this(dispatchers,
-                maxBlobSizeInBytes,
-                SharedMetricRegistry.newTimer("blob.agent.dispatch.timer"),
-                SharedMetricRegistry.newMeter("blob.agent.dispatch.failures"));*/
         Validate.notEmpty(dispatchers, "Dispatchers can't be empty");
         this.maxBlobSizeInBytes = maxBlobSizeInBytes;
         this.dispatchers = dispatchers;
 
     }
 
-    /*public BlobAgentGrpcServer(final List<BlobDispatcher> dispatchers, final int maxBlobSizeInBytes, Timer dispatchTimer, Meter dispatchFailureMeter) {
-        Validate.notEmpty(dispatchers, "Dispatchers can't be empty");
-        this.dispatchers = dispatchers;
-        this.dispatchTimer = dispatchTimer;
-        this.dispatchFailureMeter = dispatchFailureMeter;
-        this.maxBlobSizeInBytes = maxBlobSizeInBytes;
-    }*/
-
     public void dispatch(final Blob blob,
                          final StreamObserver<DispatchResult> responseObserver) {
 
         final DispatchResult.Builder result = DispatchResult.newBuilder().setCode(DispatchResult.ResultCode.SUCCESS);
         final StringBuilder failedDispatchers = new StringBuilder();
-
-        /*final Timer.Context timer = dispatchTimer.time();*/
 
         final long blobPayloadSize = blob.getContent().size();
 
@@ -83,12 +65,10 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
                     d.dispatch(blob);
                 } catch (final RateLimitException r) {
                     result.setCode(DispatchResult.ResultCode.RATE_LIMIT_ERROR);
-                    /*dispatchFailureMeter.mark();*/
                     LOGGER.error("Fail to dispatch the blobs due to rate limit errors", r);
                     failedDispatchers.append(d.getName()).append(',');
                 } catch (final Exception ex) {
                     result.setCode(DispatchResult.ResultCode.UNKNOWN_ERROR);
-                    /*dispatchFailureMeter.mark();*/
                     LOGGER.error("Fail to dispatch the blob to the dispatcher with name={}", d.getName(), ex);
                     failedDispatchers.append(d.getName()).append(',');
                 }
@@ -100,7 +80,6 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
                     StringUtils.removeEnd(failedDispatchers.toString(), ","));
         }
 
-        /*timer.close();*/
         responseObserver.onNext(result.build());
         responseObserver.onCompleted();
     }
