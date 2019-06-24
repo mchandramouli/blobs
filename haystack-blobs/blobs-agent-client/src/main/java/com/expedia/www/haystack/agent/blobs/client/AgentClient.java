@@ -28,6 +28,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,8 +84,7 @@ public class AgentClient extends AsyncSupport {
 
     @Override
     public Optional<Blob> readInternal(String key) {
-        //TODO
-        return Optional.empty();
+        throw new NotImplementedException("This function is not implemented currently");
     }
 
     @Override
