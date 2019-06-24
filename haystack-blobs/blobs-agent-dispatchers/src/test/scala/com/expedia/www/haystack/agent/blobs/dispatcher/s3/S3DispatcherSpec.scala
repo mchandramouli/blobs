@@ -2,6 +2,7 @@ package com.expedia.www.haystack.agent.blobs.dispatcher.s3
 
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, DefaultAWSCredentialsProviderChain}
 import com.amazonaws.services.s3.model.PutObjectRequest
+import com.amazonaws.services.s3.transfer.model.UploadResult
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
@@ -117,6 +118,21 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       }
     }
 
+    it("should call wait for upload while uploading blob if stated") {
+      val transferManager = mock[TransferManager]
+      val upload = mock[Upload]
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", true, 50)
+
+      expecting {
+        transferManager.upload(EasyMock.anyObject[PutObjectRequest]).andReturn(upload)
+        upload.waitForUploadResult().andReturn(mock[UploadResult]).once()
+      }
+
+      whenExecuting(transferManager, upload) {
+        dispatcher.dispatch(blob)
+      }
+    }
+
     it("should throw an error in dispatchInternal while uploading blob") {
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
@@ -132,6 +148,19 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
         }
         caught should not be null
         caught.getMessage shouldEqual "Unable to upload blob to S3 for  key key1 : some error"
+      }
+    }
+
+    it("should be closed correctly") {
+      val transferManager = mock[TransferManager]
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
+
+      expecting {
+        transferManager.shutdownNow().once()
+      }
+
+      whenExecuting(transferManager) {
+        dispatcher.close()
       }
     }
 
