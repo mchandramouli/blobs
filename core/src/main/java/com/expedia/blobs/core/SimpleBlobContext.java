@@ -47,4 +47,9 @@ public class SimpleBlobContext implements BlobContext {
     public String getOperationName() {
         return operationName;
     }
+
+    @Override
+    public void onBlobKeyCreate(String blobKey, BlobType blobType) {
+        /* no action required */
+    }
 }

@@ -55,4 +55,11 @@ public interface BlobContext {
                              getOperationId(),
                              type.getType(), UUID.randomUUID().toString());
     }
+
+    /**
+     * perform some task after creation of a blob key
+     * @param blobKey created from {@link BlobContext#makeKey(BlobType)} function
+     * @param blobType {@link BlobType}
+     */
+    void onBlobKeyCreate(String blobKey, BlobType blobType);
 }

@@ -42,13 +42,15 @@ public final class BlobWriterImpl implements BlobWriter {
     }
 
     public void write(BlobType blobType, ContentType contentType,
-                      Consumer<OutputStream> dataCallback, Consumer<Metadata> metadataCallback) {
+                      Consumer<OutputStream> dataCallback,
+                      Consumer<Metadata> metadataCallback) {
         Validate.notNull(blobType);
         Validate.notNull(contentType);
         Validate.notNull(dataCallback);
         Validate.notNull(metadataCallback);
 
-        String blobKey = context.makeKey(blobType);
+        final String blobKey = context.makeKey(blobType);
+        context.onBlobKeyCreate(blobKey, blobType);
 
         final Supplier<Map<String, String>> metadataSupplier = () -> {
             final Map<String, String> metadata = new HashMap<>(2);

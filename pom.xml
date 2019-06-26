@@ -98,6 +98,7 @@
         <jacoco-maven-plugin.version>0.7.4.201502262128</jacoco-maven-plugin.version>
         <skipGpg>true</skipGpg>
         <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
+        <haystack-client-core.version>0.2.8-SNAPSHOT</haystack-client-core.version>
     </properties>
 
     <dependencyManagement>
