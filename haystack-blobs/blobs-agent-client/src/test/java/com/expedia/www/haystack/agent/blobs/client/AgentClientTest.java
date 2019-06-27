@@ -7,20 +7,15 @@ import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
 import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
-import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import org.junit.*;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
 
