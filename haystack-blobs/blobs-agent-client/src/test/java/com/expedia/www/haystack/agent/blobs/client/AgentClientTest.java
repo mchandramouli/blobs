@@ -7,14 +7,20 @@ import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
 import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
+import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import org.junit.*;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
 
@@ -39,7 +45,14 @@ public class AgentClientTest {
     public void setup() {
         grpcServerRule.getServiceRegistry().addService(serviceImpl);
 
-        client = new AgentClient.Builder(grpcServerRule.getChannel()).build();
+        client = new AgentClient.Builder(grpcServerRule.getChannel())
+                .withThreadPoolSize(8)
+                .withThreadPoolShutdownWaitInSec(60)
+                .withChannelKeepAliveTimeMS(30)
+                .withChannelKeepAliveTimeoutMS(30)
+                .withChannelShutdownTimeoutMS(30).disableChannelKeepAliveWithoutCalls()
+
+                .build();
 
         Map<String, String> metadata = new HashMap<>();
         metadata.put("content-type", "application/json");
@@ -85,6 +98,45 @@ public class AgentClientTest {
     public void autoShutdownHookDisabled() {
         AgentClient client = new AgentClient.Builder(Mockito.mock(ManagedChannel.class)).disableAutoShutdown().build();
         Assert.assertEquals(false, client.shutdownHookAdded);
+    }
+
+    @Test
+    public void observerShouldLogForRateLimitError() {
+
+        Logger logger = Mockito.mock(Logger.class);
+
+        AgentClient.GRPCAgentClientStreamObserver streamObserver = new AgentClient.GRPCAgentClientStreamObserver(
+                logger
+        );
+        streamObserver.onNext(DispatchResult.newBuilder().setCodeValue(2).build());
+
+        verify(logger, times(1)).error("Rate limit error received from agent");
+    }
+
+    @Test
+    public void observerShouldLogForMaxSizeExceededError() {
+
+        Logger logger = Mockito.mock(Logger.class);
+
+        AgentClient.GRPCAgentClientStreamObserver streamObserver = new AgentClient.GRPCAgentClientStreamObserver(
+                logger
+        );
+        streamObserver.onNext(DispatchResult.newBuilder().setCodeValue(3).build());
+
+        verify(logger, times(1)).error("Size of the blog is greater than the set maximum size");
+    }
+
+    @Test
+    public void observerShouldLogForUnknownErrors() {
+
+        Logger logger = Mockito.mock(Logger.class);
+
+        AgentClient.GRPCAgentClientStreamObserver streamObserver = new AgentClient.GRPCAgentClientStreamObserver(
+                logger
+        );
+        streamObserver.onNext(DispatchResult.newBuilder().setCodeValue(1).build());
+
+        verify(logger, times(1)).error("Unknown error received from agent");
     }
 
 }

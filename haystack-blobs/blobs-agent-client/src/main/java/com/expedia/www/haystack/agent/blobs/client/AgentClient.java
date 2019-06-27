@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-//TODO: Re-think about AgentClient name
 public class AgentClient extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentClient.class);
 
@@ -103,7 +102,10 @@ public class AgentClient extends AsyncSupport {
 
     public static class GRPCAgentClientStreamObserver implements StreamObserver<DispatchResult> {
 
-        public GRPCAgentClientStreamObserver() {
+        private Logger LOGGER;
+
+        public GRPCAgentClientStreamObserver(Logger logger) {
+            this.LOGGER = logger;
         }
 
         @Override
@@ -153,8 +155,8 @@ public class AgentClient extends AsyncSupport {
         private int threadPoolShutdownWaitInSec = 60;
         private boolean closeOnShutdown = true;
 
-        private Builder(){
-            this.observer = new GRPCAgentClientStreamObserver();
+        private Builder() {
+            this.observer = new GRPCAgentClientStreamObserver(LOGGER);
         }
 
         public Builder(ManagedChannel managedChannel) {
