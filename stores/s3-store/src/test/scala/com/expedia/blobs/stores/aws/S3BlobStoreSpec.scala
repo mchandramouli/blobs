@@ -174,12 +174,13 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
     val s3Client = mock[AmazonS3Client]
     val s3Object = mock[S3Object]
     val objectMetadata = mock[ObjectMetadata]
+    val userMetadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
     val s3InputStream = mock[S3ObjectInputStream]
     expecting {
       transferManager.getAmazonS3Client.andReturn(s3Client).times(1)
       s3Client.getObject("blobs", "key1").andReturn(s3Object).once()
       s3Object.getObjectMetadata.andReturn(objectMetadata).once()
-      objectMetadata.getUserMetadata.andReturn(null).once()
+      objectMetadata.getUserMetadata.andReturn(userMetadata).once()
       s3Object.getObjectContent.andReturn(s3InputStream).once()
     }
     replay(transferManager, s3Client, s3Object, objectMetadata)

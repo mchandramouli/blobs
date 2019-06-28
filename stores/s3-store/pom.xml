@@ -17,9 +17,14 @@
             <artifactId>commons-lang</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-grpc-models</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.11.447</version>
+            <version>${aws-java-sdk-s3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

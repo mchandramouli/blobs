@@ -99,6 +99,7 @@
         <skipGpg>true</skipGpg>
         <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
         <haystack-client-core.version>0.2.8-SNAPSHOT</haystack-client-core.version>
+        <aws-java-sdk-s3.version>1.11.447</aws-java-sdk-s3.version>
     </properties>
 
     <dependencyManagement>
