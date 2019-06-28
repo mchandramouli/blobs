@@ -33,7 +33,23 @@ message DispatchResult {
     }
 }
 
+message BlobReadResponse {
+    Blob blob                = 1;
+    ResultCode code          = 2;
+    string error_message     = 3;
+
+    enum ResultCode {
+        SUCCESS              = 0;
+        UNKNOWN_ERROR        = 1;
+    }
+}
+
+message BlobSearch {
+    string key               = 1;
+}
+
 // service interface to push blobs to haystack agent
 service BlobAgent {
-    rpc dispatch (Blob) returns (DispatchResult);    // dispatch blob to haystack agent
+    rpc dispatch (Blob) returns (DispatchResult); // dispatch blob to haystack agent
+    rpc read (BlobSearch) returns (BlobReadResponse);
 }
