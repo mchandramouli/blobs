@@ -17,11 +17,11 @@
 package com.expedia.www.haystack.agent.blobs.server.api
 
 import java.util
-import java.util.Collections
+import java.util.{Collections, Optional}
 
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.{BlobDispatcher, RateLimitException}
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
-import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult
+import com.expedia.www.haystack.agent.blobs.grpc.api.{BlobReadResponse, BlobSearch, DispatchResult}
 import com.google.protobuf.ByteString
 import io.grpc.stub.StreamObserver
 import org.apache.commons.lang3.StringUtils
@@ -45,6 +45,14 @@ class BlobAgentGrpcServerSpec extends FunSpec with Matchers with EasyMockSugar {
     .build()
 
   describe("blob agent server") {
+
+    it("should fail during construction if no dispatcher exists") {
+      val caught = intercept[Exception] {
+        new BlobAgentGrpcServer(Collections.emptyList(), 1024 * 1024)
+      }
+      caught.getMessage shouldEqual "Dispatchers can't be empty"
+    }
+
     it("should send the record to dispatcher with success response") {
       val dispatcher = mock[BlobDispatcher]
       val observer = mock[StreamObserver[DispatchResult]]
@@ -105,11 +113,45 @@ class BlobAgentGrpcServerSpec extends FunSpec with Matchers with EasyMockSugar {
       }
     }
 
-    it("should fail during construction if no dispatcher exists") {
-      val caught = intercept[Exception] {
-        new BlobAgentGrpcServer(Collections.emptyList(), 1024*1024)
+    it("should return correct BlobReadResponse on successful read") {
+      val dispatcher = mock[BlobDispatcher]
+      val observer = mock[StreamObserver[BlobReadResponse]]
+      val blobAgentGrpcServer = new BlobAgentGrpcServer(Collections.singletonList(dispatcher), 1024 * 1024)
+      val blobSearch : BlobSearch = BlobSearch.newBuilder().setKey("key1").build()
+      val result = EasyMock.newCapture[BlobReadResponse]
+
+      expecting {
+        dispatcher.read("key1").andReturn(Optional.of(blob))
+        observer.onNext(EasyMock.capture(result)).once()
+        observer.onCompleted().once()
       }
-      caught.getMessage shouldEqual "Dispatchers can't be empty"
+
+      whenExecuting(dispatcher, observer) {
+        blobAgentGrpcServer.read(blobSearch, observer)
+        result.getValue.getBlob shouldEqual blob
+        result.getValue.getCode shouldEqual BlobReadResponse.ResultCode.SUCCESS
+      }
+    }
+
+    it("should return correct BlobReadResponse on unsuccessful read") {
+      val dispatcher = mock[BlobDispatcher]
+      val observer = mock[StreamObserver[BlobReadResponse]]
+      val blobAgentGrpcServer = new BlobAgentGrpcServer(Collections.singletonList(dispatcher), 1024 * 1024)
+      val blobSearch : BlobSearch = BlobSearch.newBuilder().setKey("key1").build()
+      val result = EasyMock.newCapture[BlobReadResponse]
+
+      expecting {
+        dispatcher.read("key1").andReturn(Optional.empty()).anyTimes()
+        dispatcher.getName.andReturn("s3").anyTimes()
+        observer.onNext(EasyMock.capture(result)).once()
+        observer.onCompleted().once()
+      }
+
+      whenExecuting(dispatcher, observer) {
+        blobAgentGrpcServer.read(blobSearch, observer)
+        result.getValue.getCode shouldEqual BlobReadResponse.ResultCode.UNKNOWN_ERROR
+        result.getValue.getErrorMessage shouldEqual "Failed to read blob with key key1 from [s3]"
+      }
     }
   }
 }

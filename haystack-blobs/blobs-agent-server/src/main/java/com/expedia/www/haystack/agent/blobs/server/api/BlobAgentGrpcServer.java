@@ -20,6 +20,8 @@ import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
+import com.expedia.www.haystack.agent.blobs.grpc.api.BlobReadResponse;
+import com.expedia.www.haystack.agent.blobs.grpc.api.BlobSearch;
 import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
 
 import io.grpc.stub.StreamObserver;
@@ -29,7 +31,10 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+
 //TODO: Metrics left
 public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
     private final Logger LOGGER = LoggerFactory.getLogger(BlobAgentGrpcServer.class);
@@ -78,6 +83,28 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
         if (failedDispatchers.length() > 0) {
             result.setErrorMessage("Fail to dispatch the blob to the dispatchers=" +
                     StringUtils.removeEnd(failedDispatchers.toString(), ","));
+        }
+
+        responseObserver.onNext(result.build());
+        responseObserver.onCompleted();
+    }
+
+    public void read(final BlobSearch blobSearch, final StreamObserver<BlobReadResponse> responseObserver) {
+        final String blobKey = blobSearch.getKey();
+
+        BlobReadResponse.Builder result = BlobReadResponse.newBuilder();
+
+
+       Optional<Blob> currentBlob = dispatchers.stream().map(blobDispatcher -> blobDispatcher.read(blobKey)).filter(Optional::isPresent)
+               .map(Optional::get).findFirst();
+
+        if (currentBlob.isPresent()) {
+            result.setBlob(currentBlob.get()).setCode(BlobReadResponse.ResultCode.SUCCESS);
+        }
+        else {
+            result.setErrorMessage(String.format("Failed to read blob with key %s from ", blobKey) +
+                    Arrays.toString(dispatchers.stream().map(d -> d.getName()).toArray()));
+            result.setCode(BlobReadResponse.ResultCode.UNKNOWN_ERROR);
         }
 
         responseObserver.onNext(result.build());

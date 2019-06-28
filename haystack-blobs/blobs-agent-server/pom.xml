@@ -14,6 +14,11 @@
     <dependencies>
         <dependency>
             <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-grpc-models</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.expedia.www</groupId>
             <artifactId>blobs-agent-dispatchers</artifactId>
             <version>${parent.version}</version>
         </dependency>
@@ -27,12 +32,6 @@
             <artifactId>blobs-core</artifactId>
             <version>${parent.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.expedia.www</groupId>
-            <artifactId>blobs-grpc-models</artifactId>
-            <version>${parent.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>

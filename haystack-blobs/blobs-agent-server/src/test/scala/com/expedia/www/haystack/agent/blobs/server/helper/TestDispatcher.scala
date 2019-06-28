@@ -1,5 +1,7 @@
 package com.expedia.www.haystack.agent.blobs.server.helper
 
+import java.util.Optional
+
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.typesafe.config.Config
@@ -21,6 +23,14 @@ class TestDispatcher extends BlobDispatcher {
     * @param blob complete { @link Blob} that will be dispatched
     */
   override def dispatch(blob: Blob): Unit = ()
+
+
+  /**
+    *
+    * @param key is the blob key that was used to save the blob
+    * @return { @link Blob}
+    */
+  override def read(key: String): Optional[Blob] = Optional.empty()
 
   /**
     * initializes the dispatcher for pushing blobs to the sink
