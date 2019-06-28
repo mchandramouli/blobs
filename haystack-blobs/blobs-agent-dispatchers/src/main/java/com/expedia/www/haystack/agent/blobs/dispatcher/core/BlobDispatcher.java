@@ -3,10 +3,12 @@ package com.expedia.www.haystack.agent.blobs.dispatcher.core;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.typesafe.config.Config;
 
+import java.util.Optional;
+
+//TODO: Rename this according to read and write functionality
 public interface BlobDispatcher extends AutoCloseable {
     /**
-     * returns the unique name for this dispatcher
-     * @return
+     * @return the unique name for this dispatcher
      */
     String getName();
 
@@ -17,8 +19,14 @@ public interface BlobDispatcher extends AutoCloseable {
     void dispatch(Blob blob);
 
     /**
+     * @param key is the blob key that was used to save the blob
+     * @return {@link Blob}
+     */
+    Optional<Blob> read(String key);
+
+    /**
      * initializes the dispatcher for pushing blobs to the sink
-     * @param conf
+     * @param conf to initialize the dispatcher
      */
     void initialize(final Config conf);
 }

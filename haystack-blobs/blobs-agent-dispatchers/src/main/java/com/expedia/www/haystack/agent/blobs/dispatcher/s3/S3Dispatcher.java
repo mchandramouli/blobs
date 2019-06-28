@@ -26,6 +26,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 
@@ -37,14 +38,21 @@ import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import com.google.protobuf.ByteString;
 import com.typesafe.config.Config;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.io.IOUtils;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
@@ -134,6 +142,37 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
                     e.getMessage());
             throw new BlobReadWriteException(message, e);
         }
+    }
+
+    @Override
+    public Optional<Blob> read(String key) {
+        try {
+            final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, key);
+            final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
+            try (final InputStream is = s3Object.getObjectContent()) {
+
+                Map<String, String> metadata = objectMetadata == null ? Collections.emptyMap() : objectMetadata;
+                //TODO: Rethink about blobType and contentType. Should we keep them just in metadata?
+                final BlobType blobType = BlobType.from(metadata.get("blob-type"));
+
+                Blob blob = Blob.newBuilder()
+                        .setKey(key)
+                        .putAllMetadata(metadata)
+                        .setContent(ByteString.copyFrom(readInputStream(is)))
+                        .setBlobType(blobType.getType() == BlobType.REQUEST.getType() ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE)
+                        .setContentType(metadata.get("content-type"))
+                        .build();
+
+                return Optional.of(blob);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to read the blob from name={}", getName(), e);
+            return Optional.empty();
+        }
+    }
+
+    protected byte[] readInputStream(InputStream is) throws IOException {
+        return IOUtils.toByteArray(is);
     }
 
     @Override

@@ -1,9 +1,14 @@
 package com.expedia.www.haystack.agent.blobs.dispatcher.s3
 
+import java.io.{ByteArrayInputStream, InputStream}
+import java.util.Optional
+
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, DefaultAWSCredentialsProviderChain}
-import com.amazonaws.services.s3.model.PutObjectRequest
+import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest, S3Object, S3ObjectInputStream}
 import com.amazonaws.services.s3.transfer.model.UploadResult
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
+import com.expedia.blobs.core.BlobReadWriteException
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.google.protobuf.ByteString
@@ -11,10 +16,25 @@ import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.easymock.EasyMock
+import org.easymock.EasyMock.{replay, verify}
 import org.scalatest.easymock.EasyMockSugar
+import org.scalatest.easymock.EasyMockSugar.{expecting, mock}
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
 import scala.collection.JavaConverters._
+
+class ErrorHandlingS3Dispatcher(transferManager: TransferManager, bucketName: String, shouldWaitForUpload: Boolean, maxOutstandingRequests: Int) extends S3Dispatcher(transferManager, bucketName, shouldWaitForUpload, maxOutstandingRequests) {
+  var error: Throwable = _
+
+  def getError: Throwable = error
+
+  def throwError(): Unit = error = new RuntimeException
+
+  override protected def readInputStream(is: InputStream): Array[Byte] = {
+    if (error != null) throw error
+    super.readInputStream(new ByteArrayInputStream("""{"key":"value"}""".getBytes))
+  }
+}
 
 class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers with EasyMockSugar {
   private val metadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava
@@ -98,6 +118,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should dispatch the blob") {
+      When("given a dispatcher which should call dispatch for a blob")
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
       val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
@@ -108,6 +129,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
         transferManager.upload(EasyMock.capture(putRequest)).andReturn(upload)
       }
 
+      Then("it should successfully dispatch that blob")
       whenExecuting(transferManager) {
         dispatcher.dispatch(blob)
         val requestObject = putRequest.getValue
@@ -119,6 +141,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should call wait for upload while uploading blob if stated") {
+      When("given the dispatcher with shouldWaitForUpload true is initialized")
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
       val dispatcher = new S3Dispatcher(transferManager, "haystack", true, 50)
@@ -128,20 +151,25 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
         upload.waitForUploadResult().andReturn(mock[UploadResult]).once()
       }
 
+      And("dispatch of dispatcher is called")
+      Then("it should wait for the complete blob to get uploaded")
       whenExecuting(transferManager, upload) {
         dispatcher.dispatch(blob)
       }
     }
 
     it("should throw an error in dispatchInternal while uploading blob") {
+      When("given the dispatcher")
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
       val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
 
+      When("dispatching the blobs encounter an error")
       expecting {
         transferManager.upload(EasyMock.anyObject(classOf[PutObjectRequest])).andThrow(new RuntimeException("some error"))
       }
 
+      Then("it should intercept and show the correct message")
       whenExecuting(transferManager, upload) {
         val caught = intercept[Exception] {
           dispatcher.dispatchInternal(blob)
@@ -152,6 +180,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should be closed correctly") {
+      When("closing the dispatcher")
       val transferManager = mock[TransferManager]
       val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
 
@@ -159,15 +188,18 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
         transferManager.shutdownNow().once()
       }
 
+      Then("it should shutdown the transfer manager")
       whenExecuting(transferManager) {
         dispatcher.close()
       }
     }
 
     it("should throw rate limit exceeded error") {
+      When("dispatching the blobs more than the dispatch rate")
       val transferManager = mock[TransferManager]
       val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 0)
 
+      Then("it should return RateLimitException")
       val caught = intercept[RateLimitException] {
         dispatcher.dispatch(blob)
       }
@@ -176,6 +208,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should build the credential provider using access and secret key") {
+      When("given the complete configuration")
       val config = ConfigFactory.parseString(
         """
           |bucketName = "haystack"
@@ -185,7 +218,10 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |awsSecretKey = "my-secret-key"
         """.stripMargin)
 
+      And("credential provider is build")
       val provider = S3Dispatcher.buildCredentialProvider(config)
+
+      Then("it should have the elements according to the provided config")
       provider.isInstanceOf[AWSStaticCredentialsProvider] shouldBe true
       val creds = provider.asInstanceOf[AWSStaticCredentialsProvider].getCredentials
       creds.getAWSSecretKey shouldEqual "my-secret-key"
@@ -201,6 +237,61 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
 
       val provider = S3Dispatcher.buildCredentialProvider(config)
       provider.isInstanceOf[DefaultAWSCredentialsProviderChain] shouldBe true
+    }
+
+    it("should read a blob from s3 and return the data as expected") {
+      Given("a blob store and a mock transfer manager")
+      val transferManager = mock[TransferManager]
+      val s3Dispatcher = new ErrorHandlingS3Dispatcher(transferManager, "blobs", false, 50)
+      val s3Client = mock[AmazonS3Client]
+      val s3Object = mock[S3Object]
+      val objectMetadata = mock[ObjectMetadata]
+      val userMetadata = metadata
+      val s3InputStream = mock[S3ObjectInputStream]
+      expecting {
+        transferManager.getAmazonS3Client.andReturn(s3Client).times(1)
+        s3Client.getObject("blobs", blobKey).andReturn(s3Object).once()
+        s3Object.getObjectMetadata.andReturn(objectMetadata).once()
+        objectMetadata.getUserMetadata.andReturn(userMetadata).once()
+        s3Object.getObjectContent.andReturn(s3InputStream).once()
+      }
+      replay(transferManager, s3Client, s3Object, objectMetadata)
+      When("a blob is read from s3")
+      val optionalBlob = s3Dispatcher.read(blobKey)
+      Then("it should read the blob by key from s3 bucket")
+      optionalBlob.isPresent should be(true)
+      val blob = optionalBlob.get()
+      And("blob data should be as expected")
+      blob.getKey should equal("key1")
+      blob.getMetadataMap should equal(metadata)
+      blob.getContent.toByteArray should equal("""{"key":"value"}""".getBytes)
+      verify(transferManager, s3Client, s3Object, objectMetadata)
+    }
+
+    it("should handle any exception at read and return empty object") {
+      Given("a blob store that fails on read")
+      val transferManager = mock[TransferManager]
+      val store = new ErrorHandlingS3Dispatcher(transferManager, "blobs", false, 50)
+      store.throwError()
+      val s3Client = mock[AmazonS3Client]
+      val s3Object = mock[S3Object]
+      val objectMetadata = mock[ObjectMetadata]
+      val userMetadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
+      val s3InputStream = mock[S3ObjectInputStream]
+      expecting {
+        transferManager.getAmazonS3Client.andReturn(s3Client).times(1)
+        s3Client.getObject("blobs", blobKey).andReturn(s3Object).once()
+        s3Object.getObjectMetadata.andReturn(objectMetadata).once()
+        objectMetadata.getUserMetadata.andReturn(userMetadata).once()
+        s3Object.getObjectContent.andReturn(s3InputStream).once()
+      }
+
+      When("read is called with a key")
+      Then("it should not return any blob")
+      whenExecuting(transferManager, s3Client, s3Object, objectMetadata) {
+        val currentBlob :Optional[Blob] = store.read(blobKey)
+        currentBlob shouldEqual Optional.empty()
+      }
     }
   }
 }
