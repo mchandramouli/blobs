@@ -11,6 +11,7 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -19,9 +20,20 @@ public class BlobAgent implements Agent {
     private static Logger LOGGER = LoggerFactory.getLogger(BlobAgent.class);
     private final static String MAX_BLOB_SIZE_KB = "maxBlobSizeInKB";
     private final static String DISPATCHERS = "dispatchers";
+    private final static String PORT = "port";
 
     private List<BlobDispatcher> dispatchers;
     private Server server;
+
+    @VisibleForTesting
+    BlobAgent(List<BlobDispatcher> dispatchers, Server server) {
+        this.dispatchers = dispatchers;
+        this.server = server;
+    }
+
+    public BlobAgent(){
+
+    }
 
     @Override
     public String getName() {
@@ -32,12 +44,15 @@ public class BlobAgent implements Agent {
     public void initialize(Config config) throws Exception {
         dispatchers = loadAndInitializeDispatchers(config, Thread.currentThread().getContextClassLoader());
 
+        _initialize(dispatchers, config);
+    }
+
+    void _initialize(List<BlobDispatcher> dispatchers, Config config) throws IOException {
+        Validate.isTrue(config.hasPath(MAX_BLOB_SIZE_KB), "max message size for blobs needs to be specified");
         final Integer maxBlobSizeInKB = config.getInt(MAX_BLOB_SIZE_KB);
 
-        Validate.notNull(maxBlobSizeInKB, "max message size for blobs needs to be specified");
-
-
-        final Integer port = config.getInt("port");
+        Validate.isTrue(config.hasPath(PORT), "port for service needs to be specified");
+        final Integer port = config.getInt(PORT);
 
         final int maxBlobSizeInBytes = maxBlobSizeInKB * 1024;
         final NettyServerBuilder builder = NettyServerBuilder
@@ -74,16 +89,6 @@ public class BlobAgent implements Agent {
             blobDispatcher.initialize(currentDispatcherConfig);
 
             dispatchers.add(blobDispatcher);
-
-            /*final Map<String, Config> blobsConfig = ConfigurationHelpers.readDispatchersConfig(config, getName());
-            blobsConfig
-                    .entrySet()
-                    .stream()
-                    .filter((e) -> e.getKey().equalsIgnoreCase(blobDispatcher.getName()))
-                    .forEach((conf) -> {
-                        blobDispatcher.initialize(conf.getValue());
-                        dispatchers.add(blobDispatcher);
-                    });*/
         }
 
         Validate.notEmpty(dispatchers, "Blob agent dispatchers can't be an empty set");
