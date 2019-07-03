@@ -116,6 +116,7 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
                         if (t != null) {
                             LOGGER.error(this.getClass().getSimpleName() + " failed to store blob ", t);
                         }
+                        parallelUploadSemaphore.release();
                     });
         } else {
             throw new RateLimitException("RateLimit is hit with outstanding(pending) requests=" + maxOutstandingRequests);
