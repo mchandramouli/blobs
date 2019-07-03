@@ -89,7 +89,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
         store.throwError(false)
         store.store(blobBuilder)
         Then("it should successfully store it")
-        Thread.sleep(50)
+        Thread.sleep(100)
         store.size should equal(1)
       }
     }
@@ -101,7 +101,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       store.throwError(true)
       store.store(blobBuilder)
       Then("it should not successfully store it")
-      Thread.sleep(50)
+      Thread.sleep(100)
       store.size should equal(0)
     }
     it("should read a blob and call the callback") {
