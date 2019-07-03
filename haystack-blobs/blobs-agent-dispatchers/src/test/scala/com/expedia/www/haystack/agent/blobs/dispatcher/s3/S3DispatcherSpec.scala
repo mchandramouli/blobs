@@ -8,7 +8,6 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest, S3Object, S3ObjectInputStream}
 import com.amazonaws.services.s3.transfer.model.UploadResult
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
-import com.expedia.blobs.core.BlobReadWriteException
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.google.protobuf.ByteString
@@ -18,7 +17,6 @@ import org.apache.commons.lang3.StringUtils
 import org.easymock.EasyMock
 import org.easymock.EasyMock.{replay, verify}
 import org.scalatest.easymock.EasyMockSugar
-import org.scalatest.easymock.EasyMockSugar.{expecting, mock}
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
 import scala.collection.JavaConverters._
@@ -59,7 +57,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       dispatcher.getName shouldEqual "s3"
     }
 
-    it("should check if bucket name is present while initializing the dispatcher") {
+    it("should check if bucket name is not empty while initializing the dispatcher") {
       val config = ConfigFactory.parseString(
         """
           |bucketName = ""
@@ -76,6 +74,42 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       }
 
       exception.getMessage shouldEqual "s3 bucket name can't be empty"
+    }
+
+    it("should check if bucket name is present while initializing the dispatcher") {
+      val config = ConfigFactory.parseString(
+        """
+          |maxOutstandingRequests = 50
+          |shouldWaitForUpload = false
+          |awsAccessKey = "my-access-key"
+          |awsSecretKey = "my-secret-key"
+        """.stripMargin)
+
+      val dispatcher = new S3Dispatcher()
+
+      val exception = intercept[Exception] {
+        dispatcher.initialize(config)
+      }
+
+      exception.getMessage shouldEqual "s3 bucket name should be present"
+    }
+
+    it("should check if maxOutstandingRequests is present while initializing the dispatcher") {
+      val config = ConfigFactory.parseString(
+        """
+          |bucketName = "haystack"
+          |shouldWaitForUpload = false
+          |awsAccessKey = "my-access-key"
+          |awsSecretKey = "my-secret-key"
+        """.stripMargin)
+
+      val dispatcher = new S3Dispatcher()
+
+      val exception = intercept[Exception] {
+        dispatcher.initialize(config)
+      }
+
+      exception.getMessage shouldEqual "number of max parallel uploads should be present"
     }
 
     it("should check if maxOutstandingRequests is positive while initializing the dispatcher") {
@@ -105,7 +139,6 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |shouldWaitForUpload = false
           |awsAccessKey = "my-access-key"
           |awsSecretKey = "my-secret-key"
-          |region = ""
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()

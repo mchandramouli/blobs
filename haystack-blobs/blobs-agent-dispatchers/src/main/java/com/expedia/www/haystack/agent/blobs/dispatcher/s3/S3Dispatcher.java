@@ -43,7 +43,6 @@ import com.typesafe.config.Config;
 
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.io.IOUtils;
-import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,11 +176,12 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
     @Override
     public void initialize(final Config s3Config) {
+        Validate.isTrue(s3Config.hasPath(BUCKET_NAME_PROPERTY), "s3 bucket name should be present");
         bucketName = s3Config.getString(BUCKET_NAME_PROPERTY);
         Validate.notEmpty(bucketName, "s3 bucket name can't be empty");
 
+        Validate.isTrue(s3Config.hasPath(MAX_OUTSTANDING_REQUESTS), "number of max parallel uploads should be present");
         maxOutstandingRequests = s3Config.getInt(MAX_OUTSTANDING_REQUESTS);
-
         Validate.isTrue(maxOutstandingRequests > 0, "max parallel uploads has to be greater than 0");
 
         shouldWaitForUpload = s3Config.hasPath(SHOULD_WAIT_FOR_UPLOAD) && s3Config.getBoolean(SHOULD_WAIT_FOR_UPLOAD);
@@ -195,7 +195,8 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     }
 
     private static TransferManager createTransferManager(final Config config) {
-        Validate.notEmpty(config.getString(REGION_PROPERTY), "s3 bucket region can't be empty");
+        Validate.isTrue(config.hasPath(REGION_PROPERTY), "s3 bucket region can't be empty");
+        final String region = config.getString(REGION_PROPERTY);
 
         final int maxConnections = config.hasPath(MAX_CONNECTIONS) ? config.getInt(MAX_CONNECTIONS) : 50;
         final boolean keepAlive = config.hasPath(KEEP_ALIVE) && config.getBoolean(KEEP_ALIVE);
@@ -210,7 +211,7 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         }
 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                .withRegion(config.getString(REGION_PROPERTY))
+                .withRegion(region)
                 .withCredentials(buildCredentialProvider(config))
                 .withClientConfiguration(clientConfiguration)
                 .build();
