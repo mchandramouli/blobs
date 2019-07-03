@@ -31,11 +31,14 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 
 import com.amazonaws.services.s3.transfer.Upload;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Timer;
 import com.expedia.blobs.core.*;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 
+import com.expedia.www.haystack.agent.core.metrics.SharedMetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 
 import com.google.protobuf.ByteString;
@@ -81,6 +84,8 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     private int maxOutstandingRequests;
     private Semaphore parallelUploadSemaphore;
     private Executor executor;
+    private Meter dispatchFailureMeter;
+    private Timer dispatchTimer;
 
     @VisibleForTesting
     S3Dispatcher(TransferManager transferManager, String bucketName, Boolean shouldWaitForUpload, int maxOutstandingRequests) {
@@ -90,11 +95,12 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         this.maxOutstandingRequests = maxOutstandingRequests;
         this.parallelUploadSemaphore = new Semaphore(maxOutstandingRequests);
         this.executor = directExecutor();
+        this.dispatchFailureMeter = SharedMetricRegistry.newMeter("s3.dispatch.failure");
+        this.dispatchTimer = SharedMetricRegistry.newTimer("s3.dispatch.timer");
     }
 
     @VisibleForTesting
     public S3Dispatcher() {
-
     }
 
     @Override
@@ -128,7 +134,7 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             final PutObjectRequest putRequest =
                     new PutObjectRequest(bucketName, blob.getKey(), stream, metadata)
                             .withCannedAcl(CannedAccessControlList.BucketOwnerFullControl)
-                            .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey()));
+                            .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey(),dispatchFailureMeter, dispatchTimer.time()));
 
             final Upload upload = transferManager.upload(putRequest);
 
@@ -190,6 +196,9 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         transferManager = createTransferManager(s3Config);
 
         executor = directExecutor();
+
+        dispatchFailureMeter = SharedMetricRegistry.newMeter("s3.dispatch.failure");
+        dispatchTimer = SharedMetricRegistry.newTimer("s3.dispatch.timer");
 
         LOGGER.info("Successfully initialized the S3 dispatcher with config={}", s3Config);
     }

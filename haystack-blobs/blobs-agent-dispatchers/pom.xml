@@ -32,6 +32,10 @@
             <version>${aws-java-sdk-s3.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>haystack-agent-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
@@ -39,6 +43,8 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+
+        <!--Test-->
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
