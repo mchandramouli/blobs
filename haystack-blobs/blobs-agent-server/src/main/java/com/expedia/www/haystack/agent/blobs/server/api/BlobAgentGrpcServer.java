@@ -16,6 +16,8 @@
  */
 package com.expedia.www.haystack.agent.blobs.server.api;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Timer;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
@@ -24,6 +26,7 @@ import com.expedia.www.haystack.agent.blobs.grpc.api.BlobReadResponse;
 import com.expedia.www.haystack.agent.blobs.grpc.api.BlobSearch;
 import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
 
+import com.expedia.www.haystack.agent.core.metrics.SharedMetricRegistry;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.lang3.StringUtils;
 
@@ -35,17 +38,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-//TODO: Metrics left
 public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
     private final Logger LOGGER = LoggerFactory.getLogger(BlobAgentGrpcServer.class);
 
     private final List<BlobDispatcher> dispatchers;
     private final int maxBlobSizeInBytes;
+    private final Timer dispatchTimer;
+    private final Meter dispatchFailureMeter;
 
     public BlobAgentGrpcServer(final List<BlobDispatcher> dispatchers, final int maxBlobSizeInBytes) {
         Validate.notEmpty(dispatchers, "Dispatchers can't be empty");
         this.maxBlobSizeInBytes = maxBlobSizeInBytes;
         this.dispatchers = dispatchers;
+        this.dispatchTimer = SharedMetricRegistry.newTimer("blob.agent.dispatch.timer");
+        this.dispatchFailureMeter = SharedMetricRegistry.newMeter("blob.agent.dispatch.failures");
 
     }
 
@@ -53,6 +59,7 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
                          final StreamObserver<DispatchResult> responseObserver) {
 
         final DispatchResult.Builder result = DispatchResult.newBuilder().setCode(DispatchResult.ResultCode.SUCCESS);
+        final Timer.Context timer = dispatchTimer.time();
         final StringBuilder failedDispatchers = new StringBuilder();
 
         final long blobPayloadSize = blob.getContent().size();
@@ -70,10 +77,12 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
                     d.dispatch(blob);
                 } catch (final RateLimitException r) {
                     result.setCode(DispatchResult.ResultCode.RATE_LIMIT_ERROR);
+                    dispatchFailureMeter.mark();
                     LOGGER.error("Fail to dispatch the blobs due to rate limit errors", r);
                     failedDispatchers.append(d.getName()).append(',');
                 } catch (final Exception ex) {
                     result.setCode(DispatchResult.ResultCode.UNKNOWN_ERROR);
+                    dispatchFailureMeter.mark();
                     LOGGER.error("Fail to dispatch the blob to the dispatcher with name={}", d.getName(), ex);
                     failedDispatchers.append(d.getName()).append(',');
                 }
@@ -85,6 +94,7 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
                     StringUtils.removeEnd(failedDispatchers.toString(), ","));
         }
 
+        timer.close();
         responseObserver.onNext(result.build());
         responseObserver.onCompleted();
     }

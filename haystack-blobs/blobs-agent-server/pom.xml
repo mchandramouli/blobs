@@ -33,6 +33,12 @@
             <version>${parent.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>haystack-agent-api</artifactId>
+        </dependency>
+
+        <!--Test-->
+        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
         </dependency>
