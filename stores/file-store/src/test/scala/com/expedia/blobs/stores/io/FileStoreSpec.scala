@@ -5,7 +5,7 @@ import java.util.Optional
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl, ContentType}
+import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl}
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.google.protobuf.ByteString
 import org.parboiled.common.FileUtils
@@ -19,11 +19,6 @@ object Support {
     .setKey("key1")
     .setContent(ByteString.copyFrom("""{"key":"value"}""".getBytes))
     .putAllMetadata(Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava)
-    .setBlobType(Blob.BlobType.REQUEST)
-    .setContentType(ContentType.JSON.getType)
-    .setServiceName("service")
-    .setOperationName("Operation")
-    .setOperationID("abcd")
     .build()
 }
 

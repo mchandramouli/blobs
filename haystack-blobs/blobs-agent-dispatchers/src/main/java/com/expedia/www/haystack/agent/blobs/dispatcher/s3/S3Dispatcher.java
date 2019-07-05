@@ -29,26 +29,22 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
-
 import com.amazonaws.services.s3.transfer.Upload;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
-import com.expedia.blobs.core.*;
+import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.io.BlobInputStream;
 import com.expedia.blobs.core.support.CompressDecompressService;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
-
 import com.expedia.www.haystack.agent.core.metrics.SharedMetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-
 import com.google.protobuf.ByteString;
 import com.typesafe.config.Config;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,8 +163,6 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             Map<String, String> metadata = objectMetadata == null ? Collections.emptyMap() : objectMetadata;
 
             final String compressionType = getCompressionType(metadata);
-            //TODO: Rethink about blobType and contentType. Should we keep them just in metadata?
-            final BlobType blobType = BlobType.from(metadata.get("blob-type"));
 
             final InputStream is = s3Object.getObjectContent();
 
@@ -177,8 +171,6 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
                         .setKey(key)
                         .putAllMetadata(metadata)
                         .setContent(ByteString.copyFrom(readInputStream(uncompressedStream)))
-                        .setBlobType(blobType.getType() == BlobType.REQUEST.getType() ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE)
-                        .setContentType(metadata.get("content-type"))
                         .build();
 
                 return Optional.of(blob);

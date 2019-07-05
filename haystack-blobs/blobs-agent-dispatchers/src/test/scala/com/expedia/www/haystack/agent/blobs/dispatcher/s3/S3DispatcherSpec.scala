@@ -47,9 +47,6 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
   private val blobKey = "key1"
   private val blob = Blob.newBuilder()
     .setKey(blobKey)
-    .setServiceName("client")
-    .setBlobType(Blob.BlobType.REQUEST)
-    .setContentType("text")
     .setContent(ByteString.copyFromUtf8(StringUtils.repeat("request-data", 5)))
     .putAllMetadata(metadata)
     .build()

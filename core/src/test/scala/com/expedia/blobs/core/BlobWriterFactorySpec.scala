@@ -18,7 +18,7 @@
 package com.expedia.blobs.core
 
 import org.scalatest.easymock.EasyMockSugar._
-import org.scalatest.{FunSpec, GivenWhenThen, Matchers, BeforeAndAfter}
+import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
 class BlobWriterFactorySpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers {
   describe("blobs creation") {

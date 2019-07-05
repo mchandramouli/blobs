@@ -18,11 +18,6 @@ object Support {
     .setKey("key1")
     .setContent(ByteString.copyFrom("""{"key":"value"}""".getBytes))
     .putAllMetadata(Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava)
-    .setBlobType(Blob.BlobType.REQUEST)
-    .setContentType(ContentType.JSON.getType)
-    .setServiceName("service")
-    .setOperationName("Operation")
-    .setOperationID("abcd")
     .build()
 }
 

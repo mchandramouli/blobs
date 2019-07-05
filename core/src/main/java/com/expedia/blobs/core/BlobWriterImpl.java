@@ -17,6 +17,11 @@
  */
 package com.expedia.blobs.core;
 
+import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
+import org.apache.commons.lang.Validate;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -24,11 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
-import org.apache.commons.lang.Validate;
 
 public final class BlobWriterImpl implements BlobWriter {
     private final BlobContext context;
@@ -73,7 +73,7 @@ public final class BlobWriterImpl implements BlobWriter {
     }
 
     private void write(String blobKey, Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier) {
-        store.store(new BlobBuilder(blobKey, metadataSupplier, dataSupplier, context));
+        store.store(new BlobBuilder(blobKey, metadataSupplier, dataSupplier));
     }
 
     public static class BlobBuilder {
@@ -81,14 +81,12 @@ public final class BlobWriterImpl implements BlobWriter {
         private String blobKey;
         private Supplier<Map<String, String>> metadataSupplier;
         private Supplier<byte[]> dataSupplier;
-        private BlobContext context;
 
 
-        BlobBuilder(String blobKey, Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier, BlobContext context) {
+        BlobBuilder(String blobKey, Supplier<Map<String, String>> metadataSupplier, Supplier<byte[]> dataSupplier) {
             this.blobKey = blobKey;
             this.metadataSupplier = metadataSupplier;
             this.dataSupplier = dataSupplier;
-            this.context = context;
         }
 
         @VisibleForTesting
@@ -101,14 +99,8 @@ public final class BlobWriterImpl implements BlobWriter {
                 final Map<String, String> metadata = metadataSupplier.get();
                 final byte[] data = dataSupplier.get();
 
-                final Blob.BlobType blobType = BlobType.from(metadata.get("blob-type")) == BlobType.REQUEST ? Blob.BlobType.REQUEST : Blob.BlobType.RESPONSE;
-
                 blob = Blob.newBuilder()
                         .setKey(blobKey)
-                        .setServiceName(context.getServiceName())
-                        .setOperationName(context.getOperationName())
-                        .setBlobType(blobType)
-                        .setContentType(metadata.get("content-type"))
                         .putAllMetadata(metadata)
                         .setContent(ByteString.copyFrom(data))
                         .build();

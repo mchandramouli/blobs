@@ -36,10 +36,12 @@
                         <configuration>
                             <protocArtifact>com.google.protobuf:protoc:3.0.0</protocArtifact>
                             <includeDirectories>
-                                <include>./src/main/resources</include>
+                                <!--<include>./src/main/resources</include>-->
+                                <include>./src/main/haystack-idl/proto/blobs</include>
                             </includeDirectories>
                             <inputDirectories>
-                                <include>./src/main/resources</include>
+                                <!--<include>./src/main/resources</include>-->
+                                <include>./src/main/haystack-idl/proto/blobs</include>
                             </inputDirectories>
                             <outputDirectory>${project.build.directory}/generated-sources/proto</outputDirectory>
                             <outputTargets>

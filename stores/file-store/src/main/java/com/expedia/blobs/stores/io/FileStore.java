@@ -18,7 +18,6 @@
 package com.expedia.blobs.stores.io;
 
 import com.expedia.blobs.core.BlobReadWriteException;
-import com.expedia.blobs.core.BlobType;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
@@ -26,6 +25,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.google.protobuf.ByteString;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,13 +38,6 @@ import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Optional;
-
-import com.google.protobuf.ByteString;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FileStore extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStore.class);
@@ -92,14 +90,10 @@ public class FileStore extends AsyncSupport {
             final Map<String, String> metadata = gson.fromJson(meta, mapType);
             final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
 
-            final BlobType blobType = BlobType.from(metadata.get("blob-type"));
-
             Blob blob = Blob.newBuilder()
                     .setKey(key)
                     .putAllMetadata(metadata)
                     .setContent(ByteString.copyFrom(data))
-                    .setBlobType(blobType.getType().equals(BlobType.REQUEST.getType()) ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE)
-                    .setContentType(metadata.get("content-type"))
                     .build();
 
             return Optional.of(blob);

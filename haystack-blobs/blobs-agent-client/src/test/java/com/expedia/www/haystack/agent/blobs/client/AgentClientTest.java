@@ -1,7 +1,6 @@
 package com.expedia.www.haystack.agent.blobs.client;
 
 import com.expedia.blobs.core.BlobWriterImpl;
-import com.expedia.blobs.core.ContentType;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
 import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
 import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
@@ -58,11 +57,6 @@ public class AgentClientTest {
                 .setKey("key1")
                 .setContent(ByteString.copyFrom(new String("{'key':'value'}").getBytes()))
                 .putAllMetadata(metadata)
-                .setBlobType(Blob.BlobType.REQUEST)
-                .setContentType(ContentType.JSON.getType())
-                .setServiceName("service")
-                .setOperationName("Operation")
-                .setOperationID("abcd")
                 .build();
     }
 

@@ -37,9 +37,6 @@ class BlobAgentGrpcServerSpec extends FunSpec with Matchers with EasyMockSugar {
 
   private val blob = Blob.newBuilder()
     .setKey("Key1")
-    .setServiceName("client")
-    .setBlobType(Blob.BlobType.REQUEST)
-    .setContentType("text")
     .setContent(ByteString.copyFromUtf8(StringUtils.repeat("request-data", 5)))
     .putAllMetadata(metadata)
     .build()
