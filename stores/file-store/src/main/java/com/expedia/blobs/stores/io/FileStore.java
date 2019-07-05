@@ -20,7 +20,7 @@ package com.expedia.blobs.stores.io;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+import com.expedia.www.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

@@ -21,7 +21,7 @@ You can look at our sample projects for how to save a blob through a simple web 
 
 ## Blobs Core
 
-This module contains all the core classes needed to instrument the creation of the blobs and then start the process of writing it to a [store](#stores). Only the Blob Model is created by the `blob.proto` present in [blobs-grpc-models](#models) module inside the package `com.expedia.www.haystack.agent.blobs.grpc`.
+This module contains all the core classes needed to instrument the creation of the blobs and then start the process of writing it to a [store](#stores). Only the Blob Model is created by the `blob.proto` present in [blobs-grpc-models](#models) module inside the package `com.expedia.www.blobs.model`.
 
 
 ## Haystack Blobs

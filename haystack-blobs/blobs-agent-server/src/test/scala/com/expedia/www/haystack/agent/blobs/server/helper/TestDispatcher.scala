@@ -2,8 +2,8 @@ package com.expedia.www.haystack.agent.blobs.server.helper
 
 import java.util.Optional
 
+import com.expedia.www.blobs.model.Blob
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher
-import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.typesafe.config.Config
 
 class TestDispatcher extends BlobDispatcher {

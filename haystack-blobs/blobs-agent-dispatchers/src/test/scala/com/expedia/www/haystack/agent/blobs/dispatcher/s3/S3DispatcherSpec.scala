@@ -10,8 +10,8 @@ import com.amazonaws.services.s3.transfer.model.UploadResult
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
 import com.expedia.blobs.core.io.BlobInputStream
 import com.expedia.blobs.core.support.CompressDecompressService
+import com.expedia.www.blobs.model.Blob
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException
-import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.google.protobuf.ByteString
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.IOUtils

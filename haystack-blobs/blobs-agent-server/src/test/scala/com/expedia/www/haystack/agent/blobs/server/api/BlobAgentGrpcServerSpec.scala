@@ -19,9 +19,9 @@ package com.expedia.www.haystack.agent.blobs.server.api
 import java.util
 import java.util.{Collections, Optional}
 
+import com.expedia.www.blobs.model.Blob
+import com.expedia.www.haystack.agent.blobs.api.{BlobReadResponse, BlobSearch, DispatchResult}
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.{BlobDispatcher, RateLimitException}
-import com.expedia.www.haystack.agent.blobs.grpc.Blob
-import com.expedia.www.haystack.agent.blobs.grpc.api.{BlobReadResponse, BlobSearch, DispatchResult}
 import com.google.protobuf.ByteString
 import io.grpc.stub.StreamObserver
 import org.apache.commons.lang3.StringUtils

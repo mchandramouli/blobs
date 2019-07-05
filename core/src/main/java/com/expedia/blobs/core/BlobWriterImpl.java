@@ -17,7 +17,7 @@
  */
 package com.expedia.blobs.core;
 
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+import com.expedia.www.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import org.apache.commons.lang.Validate;

@@ -18,15 +18,15 @@
 package com.expedia.blobs.core.io;
 
 import com.expedia.blobs.core.BlobStore;
+import com.expedia.blobs.core.BlobWriterImpl;
+import com.expedia.www.blobs.model.Blob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-
-import com.expedia.blobs.core.BlobWriterImpl;
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class AsyncSupport implements BlobStore, Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(AsyncSupport.class);

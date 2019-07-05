@@ -18,7 +18,7 @@
 package com.expedia.blobs.core;
 
 /**
- * interface of a class representing metadata associated with a {@link com.expedia.www.haystack.agent.blobs.grpc.Blob} object
+ * interface of a class representing metadata associated with a {@link com.expedia.www.blobs.model.Blob} object
  */
 public interface Metadata {
     void add(String key, String value);

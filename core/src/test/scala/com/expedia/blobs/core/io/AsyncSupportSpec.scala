@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.expedia.blobs.core._
-import com.expedia.www.haystack.agent.blobs.grpc.Blob
+import com.expedia.www.blobs.model.Blob
 import com.google.protobuf.ByteString
 import org.scalatest.easymock.EasyMockSugar
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}

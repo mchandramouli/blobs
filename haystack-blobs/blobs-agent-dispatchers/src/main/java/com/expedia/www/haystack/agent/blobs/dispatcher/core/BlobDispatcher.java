@@ -1,6 +1,6 @@
 package com.expedia.www.haystack.agent.blobs.dispatcher.core;
 
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+import com.expedia.www.blobs.model.Blob;
 import com.typesafe.config.Config;
 
 import java.util.Optional;

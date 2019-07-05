@@ -18,18 +18,16 @@ package com.expedia.www.haystack.agent.blobs.server.api;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
-import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
-import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
+import com.expedia.www.blobs.model.Blob;
+import com.expedia.www.haystack.agent.blobs.api.BlobAgentGrpc;
+import com.expedia.www.haystack.agent.blobs.api.BlobReadResponse;
+import com.expedia.www.haystack.agent.blobs.api.BlobSearch;
+import com.expedia.www.haystack.agent.blobs.api.DispatchResult;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
-import com.expedia.www.haystack.agent.blobs.grpc.api.BlobReadResponse;
-import com.expedia.www.haystack.agent.blobs.grpc.api.BlobSearch;
-import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
-
+import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.core.metrics.SharedMetricRegistry;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

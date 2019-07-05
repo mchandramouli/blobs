@@ -19,11 +19,10 @@ package com.expedia.www.haystack.agent.blobs.client;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
-import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
-import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
+import com.expedia.www.blobs.model.Blob;
+import com.expedia.www.haystack.agent.blobs.api.BlobAgentGrpc;
+import com.expedia.www.haystack.agent.blobs.api.DispatchResult;
 import com.google.common.annotations.VisibleForTesting;
-
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;

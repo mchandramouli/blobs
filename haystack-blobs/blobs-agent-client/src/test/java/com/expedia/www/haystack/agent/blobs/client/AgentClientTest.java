@@ -1,9 +1,9 @@
 package com.expedia.www.haystack.agent.blobs.client;
 
 import com.expedia.blobs.core.BlobWriterImpl;
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
-import com.expedia.www.haystack.agent.blobs.grpc.api.BlobAgentGrpc;
-import com.expedia.www.haystack.agent.blobs.grpc.api.DispatchResult;
+import com.expedia.www.blobs.model.Blob;
+import com.expedia.www.haystack.agent.blobs.api.BlobAgentGrpc;
+import com.expedia.www.haystack.agent.blobs.api.DispatchResult;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;

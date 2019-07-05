@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
-import com.expedia.www.haystack.agent.blobs.grpc.Blob;
+import com.expedia.www.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import org.apache.commons.io.IOUtils;

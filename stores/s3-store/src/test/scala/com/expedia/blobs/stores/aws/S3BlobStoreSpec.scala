@@ -7,7 +7,7 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest, S3Object, S3ObjectInputStream}
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
 import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl}
-import com.expedia.www.haystack.agent.blobs.grpc.Blob
+import com.expedia.www.blobs.model.Blob
 import com.google.protobuf.ByteString
 import org.apache.commons.io.IOUtils
 import org.easymock.EasyMock
