@@ -34,6 +34,8 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.expedia.blobs.core.*;
+import com.expedia.blobs.core.io.BlobInputStream;
+import com.expedia.blobs.core.support.CompressDecompressService;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.blobs.grpc.Blob;
@@ -44,12 +46,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import com.typesafe.config.Config;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -78,17 +80,20 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
     private final static String MAX_OUTSTANDING_REQUESTS = "maxOutstandingRequests";
 
+    private final static String COMPRESSION_TYPE = "compressionType";
+
     private TransferManager transferManager;
     private String bucketName;
     private Boolean shouldWaitForUpload;
     private int maxOutstandingRequests;
     private Semaphore parallelUploadSemaphore;
     private Executor executor;
+    private CompressDecompressService compressDecompressService;
     private Meter dispatchFailureMeter;
     private Timer dispatchTimer;
 
     @VisibleForTesting
-    S3Dispatcher(TransferManager transferManager, String bucketName, Boolean shouldWaitForUpload, int maxOutstandingRequests) {
+    S3Dispatcher(TransferManager transferManager, String bucketName, Boolean shouldWaitForUpload, int maxOutstandingRequests, CompressDecompressService compressDecompressService) {
         this.transferManager = transferManager;
         this.bucketName = bucketName;
         this.shouldWaitForUpload = shouldWaitForUpload;
@@ -97,6 +102,7 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         this.executor = directExecutor();
         this.dispatchFailureMeter = SharedMetricRegistry.newMeter("s3.dispatch.failure");
         this.dispatchTimer = SharedMetricRegistry.newTimer("s3.dispatch.timer");
+        this.compressDecompressService = compressDecompressService;
     }
 
     @VisibleForTesting
@@ -128,14 +134,16 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         try {
             final ObjectMetadata metadata = new ObjectMetadata();
             blob.getMetadataMap().forEach(metadata::addUserMetadata);
-            metadata.setContentLength(blob.getContent().size());
 
-            final InputStream stream = new ByteArrayInputStream(blob.getContent().toByteArray());
+            final BlobInputStream blobInputStream = compressDecompressService.compressData(blob.getContent().toByteArray());
+
+            metadata.setContentLength(blobInputStream.getLength());
+            metadata.addUserMetadata(COMPRESSION_TYPE, compressDecompressService.getCompressionType());
 
             final PutObjectRequest putRequest =
-                    new PutObjectRequest(bucketName, blob.getKey(), stream, metadata)
+                    new PutObjectRequest(bucketName, blob.getKey(), blobInputStream.getStream(), metadata)
                             .withCannedAcl(CannedAccessControlList.BucketOwnerFullControl)
-                            .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey(),dispatchFailureMeter, dispatchTimer.time()));
+                            .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey(), dispatchFailureMeter, dispatchTimer.time()));
 
             final Upload upload = transferManager.upload(putRequest);
 
@@ -155,16 +163,20 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         try {
             final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, key);
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
-            try (final InputStream is = s3Object.getObjectContent()) {
 
-                Map<String, String> metadata = objectMetadata == null ? Collections.emptyMap() : objectMetadata;
-                //TODO: Rethink about blobType and contentType. Should we keep them just in metadata?
-                final BlobType blobType = BlobType.from(metadata.get("blob-type"));
+            Map<String, String> metadata = objectMetadata == null ? Collections.emptyMap() : objectMetadata;
 
+            final String compressionType = getCompressionType(metadata);
+            //TODO: Rethink about blobType and contentType. Should we keep them just in metadata?
+            final BlobType blobType = BlobType.from(metadata.get("blob-type"));
+
+            final InputStream is = s3Object.getObjectContent();
+
+            try (final InputStream uncompressedStream = CompressDecompressService.uncompressData(compressionType, is)) {
                 Blob blob = Blob.newBuilder()
                         .setKey(key)
                         .putAllMetadata(metadata)
-                        .setContent(ByteString.copyFrom(readInputStream(is)))
+                        .setContent(ByteString.copyFrom(readInputStream(uncompressedStream)))
                         .setBlobType(blobType.getType() == BlobType.REQUEST.getType() ? com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.REQUEST : com.expedia.www.haystack.agent.blobs.grpc.Blob.BlobType.RESPONSE)
                         .setContentType(metadata.get("content-type"))
                         .build();
@@ -175,6 +187,11 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             LOGGER.error("Failed to read the blob from name={}", getName(), e);
             return Optional.empty();
         }
+    }
+
+    String getCompressionType(Map<String, String> metadata) {
+        final String compressionType = metadata.get(COMPRESSION_TYPE);
+        return StringUtils.isEmpty(compressionType) ? "none" : compressionType;
     }
 
     protected byte[] readInputStream(InputStream is) throws IOException {
@@ -197,6 +214,8 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         transferManager = createTransferManager(s3Config);
 
         executor = directExecutor();
+
+        compressDecompressService = new CompressDecompressService(s3Config);
 
         dispatchFailureMeter = SharedMetricRegistry.newMeter("s3.dispatch.failure");
         dispatchTimer = SharedMetricRegistry.newTimer("s3.dispatch.timer");

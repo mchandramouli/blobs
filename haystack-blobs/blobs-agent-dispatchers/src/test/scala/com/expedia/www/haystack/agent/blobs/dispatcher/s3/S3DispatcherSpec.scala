@@ -8,6 +8,8 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest, S3Object, S3ObjectInputStream}
 import com.amazonaws.services.s3.transfer.model.UploadResult
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
+import com.expedia.blobs.core.io.BlobInputStream
+import com.expedia.blobs.core.support.CompressDecompressService
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException
 import com.expedia.www.haystack.agent.blobs.grpc.Blob
 import com.google.protobuf.ByteString
@@ -21,7 +23,13 @@ import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 
 import scala.collection.JavaConverters._
 
-class ErrorHandlingS3Dispatcher(transferManager: TransferManager, bucketName: String, shouldWaitForUpload: Boolean, maxOutstandingRequests: Int) extends S3Dispatcher(transferManager, bucketName, shouldWaitForUpload, maxOutstandingRequests) {
+class ErrorHandlingS3Dispatcher(transferManager: TransferManager,
+                                bucketName: String,
+                                shouldWaitForUpload: Boolean,
+                                maxOutstandingRequests: Int,
+                                compressDecompressService: CompressDecompressService)
+  extends S3Dispatcher(transferManager, bucketName, shouldWaitForUpload, maxOutstandingRequests, compressDecompressService) {
+
   var error: Throwable = _
 
   def getError: Throwable = error
@@ -35,7 +43,7 @@ class ErrorHandlingS3Dispatcher(transferManager: TransferManager, bucketName: St
 }
 
 class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers with EasyMockSugar {
-  private val metadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava
+  private val metadata = Map[String, String]("compressionType"-> "none", "content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava
   private val blobKey = "key1"
   private val blob = Blob.newBuilder()
     .setKey(blobKey)
@@ -50,7 +58,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
 
     it("should return it's name as 's3'") {
       val transferManager = mock[TransferManager]
-      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50, mock[CompressDecompressService])
 
       When("getName method of dispatcher is called")
       Then("It should return 's3' as name")
@@ -65,6 +73,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |shouldWaitForUpload = false
           |awsAccessKey = "my-access-key"
           |awsSecretKey = "my-secret-key"
+          |compressionType = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -83,6 +92,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |shouldWaitForUpload = false
           |awsAccessKey = "my-access-key"
           |awsSecretKey = "my-secret-key"
+          |compressionType = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -101,6 +111,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |shouldWaitForUpload = false
           |awsAccessKey = "my-access-key"
           |awsSecretKey = "my-secret-key"
+          |compressionType = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -120,6 +131,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |shouldWaitForUpload = false
           |awsAccessKey = "my-access-key"
           |awsSecretKey = "my-secret-key"
+          |compressionType = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -139,6 +151,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
           |shouldWaitForUpload = false
           |awsAccessKey = "my-access-key"
           |awsSecretKey = "my-secret-key"
+          |compressionType = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -154,16 +167,19 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       When("given a dispatcher which should call dispatch for a blob")
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
-      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
+      val compressDecompressService = mock[CompressDecompressService]
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50, compressDecompressService)
 
       val putRequest = EasyMock.newCapture[PutObjectRequest]
 
       expecting {
+        compressDecompressService.getCompressionType.andReturn("none")
+        compressDecompressService.compressData(EasyMock.anyObject()).andReturn(new BlobInputStream(new ByteArrayInputStream(blob.getContent.toByteArray), blob.getContent.toByteArray.length))
         transferManager.upload(EasyMock.capture(putRequest)).andReturn(upload)
       }
 
       Then("it should successfully dispatch that blob")
-      whenExecuting(transferManager) {
+      whenExecuting(transferManager, compressDecompressService) {
         dispatcher.dispatch(blob)
         val requestObject = putRequest.getValue
         requestObject.getBucketName shouldEqual "haystack"
@@ -177,16 +193,19 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       When("given the dispatcher with shouldWaitForUpload true is initialized")
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
-      val dispatcher = new S3Dispatcher(transferManager, "haystack", true, 50)
+      val compressDecompressService = mock[CompressDecompressService]
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", true, 50, compressDecompressService)
 
       expecting {
+        compressDecompressService.getCompressionType.andReturn("none")
+        compressDecompressService.compressData(EasyMock.anyObject()).andReturn(new BlobInputStream(new ByteArrayInputStream(blob.getContent.toByteArray), blob.getContent.toByteArray.length))
         transferManager.upload(EasyMock.anyObject[PutObjectRequest]).andReturn(upload)
         upload.waitForUploadResult().andReturn(mock[UploadResult]).once()
       }
 
       And("dispatch of dispatcher is called")
       Then("it should wait for the complete blob to get uploaded")
-      whenExecuting(transferManager, upload) {
+      whenExecuting(transferManager, upload, compressDecompressService) {
         dispatcher.dispatch(blob)
       }
     }
@@ -195,15 +214,18 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       When("given the dispatcher")
       val transferManager = mock[TransferManager]
       val upload = mock[Upload]
-      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
+      val compressDecompressService = mock[CompressDecompressService]
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50, compressDecompressService)
 
       When("dispatching the blobs encounter an error")
       expecting {
+        compressDecompressService.getCompressionType.andReturn("none")
+        compressDecompressService.compressData(EasyMock.anyObject()).andReturn(new BlobInputStream(new ByteArrayInputStream(blob.getContent.toByteArray), blob.getContent.toByteArray.length))
         transferManager.upload(EasyMock.anyObject(classOf[PutObjectRequest])).andThrow(new RuntimeException("some error"))
       }
 
       Then("it should intercept and show the correct message")
-      whenExecuting(transferManager, upload) {
+      whenExecuting(transferManager, upload, compressDecompressService) {
         val caught = intercept[Exception] {
           dispatcher.dispatchInternal(blob)
         }
@@ -215,7 +237,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should be closed correctly") {
       When("closing the dispatcher")
       val transferManager = mock[TransferManager]
-      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50)
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 50, mock[CompressDecompressService])
 
       expecting {
         transferManager.shutdownNow().once()
@@ -230,7 +252,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should throw rate limit exceeded error") {
       When("dispatching the blobs more than the dispatch rate")
       val transferManager = mock[TransferManager]
-      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 0)
+      val dispatcher = new S3Dispatcher(transferManager, "haystack", false, 0, mock[CompressDecompressService])
 
       Then("it should return RateLimitException")
       val caught = intercept[RateLimitException] {
@@ -275,7 +297,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should read a blob from s3 and return the data as expected") {
       Given("a blob store and a mock transfer manager")
       val transferManager = mock[TransferManager]
-      val s3Dispatcher = new ErrorHandlingS3Dispatcher(transferManager, "blobs", false, 50)
+      val s3Dispatcher = new ErrorHandlingS3Dispatcher(transferManager, "blobs", false, 50, mock[CompressDecompressService])
       val s3Client = mock[AmazonS3Client]
       val s3Object = mock[S3Object]
       val objectMetadata = mock[ObjectMetadata]
@@ -304,7 +326,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should handle any exception at read and return empty object") {
       Given("a blob store that fails on read")
       val transferManager = mock[TransferManager]
-      val store = new ErrorHandlingS3Dispatcher(transferManager, "blobs", false, 50)
+      val store = new ErrorHandlingS3Dispatcher(transferManager, "blobs", false, 50, mock[CompressDecompressService])
       store.throwError()
       val s3Client = mock[AmazonS3Client]
       val s3Object = mock[S3Object]
@@ -322,9 +344,21 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       When("read is called with a key")
       Then("it should not return any blob")
       whenExecuting(transferManager, s3Client, s3Object, objectMetadata) {
-        val currentBlob :Optional[Blob] = store.read(blobKey)
+        val currentBlob: Optional[Blob] = store.read(blobKey)
         currentBlob shouldEqual Optional.empty()
       }
+    }
+
+    it("should return correct compressionType when asked for") {
+      val metadata = Map[String, String]("compressionType" -> "gzip","content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
+      val s3Dispatcher = new S3Dispatcher()
+      s3Dispatcher.getCompressionType(metadata) shouldEqual "gzip"
+    }
+
+    it("should return correct 'none' as compressionType when not present in metadata") {
+      val metadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
+      val s3Dispatcher = new S3Dispatcher()
+      s3Dispatcher.getCompressionType(metadata) shouldEqual "none"
     }
   }
 }
