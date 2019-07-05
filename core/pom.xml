@@ -24,6 +24,19 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-grpc-models</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+        </dependency>
 
         <!-- test -->
         <dependency>
@@ -53,11 +66,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.expedia.www</groupId>
-            <artifactId>blobs-grpc-models</artifactId>
-            <version>${parent.version}</version>
         </dependency>
     </dependencies>
     <build>
