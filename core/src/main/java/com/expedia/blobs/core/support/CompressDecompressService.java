@@ -1,26 +1,23 @@
 package com.expedia.blobs.core.support;
 
 import com.expedia.blobs.core.io.BlobInputStream;
-import com.typesafe.config.Config;
 import org.apache.commons.io.IOUtils;
 import org.xerial.snappy.SnappyInputStream;
 import org.xerial.snappy.SnappyOutputStream;
 
 import java.io.*;
-import java.util.Locale;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class CompressDecompressService {
 
-    private final static String COMPRESSION_TYPE = "compressionType";
     private final CompressionType compressionType;
 
-    public CompressDecompressService(Config config) {
-        this.compressionType = findCompressionType(config);
+    public CompressDecompressService(CompressionType compressionType) {
+        this.compressionType = compressionType;
     }
 
-    enum CompressionType {
+    public enum CompressionType {
         GZIP, SNAPPY, NONE
     }
 
@@ -55,14 +52,14 @@ public class CompressDecompressService {
                 new ByteArrayInputStream(compressedBytes), compressedBytes.length);
     }
 
-    public static InputStream uncompressData(final String compressionType, final InputStream stream) {
+    public static InputStream uncompressData(final CompressionType compressionType, final InputStream stream) {
         try {
-            switch (compressionType.toLowerCase(Locale.US)) {
-                case "gzip":
+            switch (compressionType) {
+                case GZIP:
                     return new GZIPInputStream(stream);
-                case "snappy":
+                case SNAPPY:
                     return new SnappyInputStream(stream);
-                case "none":
+                case NONE:
                 default:
                     return stream;
             }
@@ -73,10 +70,5 @@ public class CompressDecompressService {
 
     public String getCompressionType() {
         return compressionType.toString();
-    }
-
-    private CompressionType findCompressionType(Config config) {
-        final String compressionType = config.hasPath(COMPRESSION_TYPE) ? config.getString(COMPRESSION_TYPE).toUpperCase() : "NONE";
-        return CompressDecompressService.CompressionType.valueOf(compressionType);
     }
 }
