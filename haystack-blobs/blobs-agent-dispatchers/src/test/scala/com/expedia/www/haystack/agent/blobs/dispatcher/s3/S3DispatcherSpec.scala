@@ -43,7 +43,7 @@ class ErrorHandlingS3Dispatcher(transferManager: TransferManager,
 }
 
 class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers with EasyMockSugar {
-  private val metadata = Map[String, String]("compressionType"-> "none", "content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava
+  private val metadata = Map[String, String]("compressionType" -> "none", "content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d").asJava
   private val blobKey = "key1"
   private val blob = Blob.newBuilder()
     .setKey(blobKey)
@@ -347,15 +347,38 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should return correct compressionType when asked for") {
-      val metadata = Map[String, String]("compressionType" -> "gzip","content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
+      val metadata = Map[String, String]("compressionType" -> "gzip", "content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
       val s3Dispatcher = new S3Dispatcher()
-      s3Dispatcher.getCompressionType(metadata) shouldEqual "gzip"
+      s3Dispatcher.getCompressionType(metadata) shouldEqual CompressDecompressService.CompressionType.GZIP
     }
 
     it("should return correct 'none' as compressionType when not present in metadata") {
       val metadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
       val s3Dispatcher = new S3Dispatcher()
-      s3Dispatcher.getCompressionType(metadata) shouldEqual "none"
+      s3Dispatcher.getCompressionType(metadata) shouldEqual CompressDecompressService.CompressionType.NONE
+    }
+
+    it("should find the actual compression type(GZIP) from config") {
+      val config = ConfigFactory.parseString(
+        """
+          |compressionType = "SNAPPY"
+        """.stripMargin)
+
+      val s3Dispatcher = new S3Dispatcher()
+      val compressionType = s3Dispatcher.findCompressionType(config)
+
+      compressionType shouldEqual CompressDecompressService.CompressionType.SNAPPY
+    }
+
+    it("should return 'NONE' for compressionType if not specified in config") {
+      val config = ConfigFactory.parseString(
+        """
+        """.stripMargin)
+
+      val s3Dispatcher = new S3Dispatcher()
+      val compressionType = s3Dispatcher.findCompressionType(config)
+
+      compressionType shouldEqual CompressDecompressService.CompressionType.NONE
     }
   }
 }

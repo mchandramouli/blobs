@@ -162,7 +162,7 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
             Map<String, String> metadata = objectMetadata == null ? Collections.emptyMap() : objectMetadata;
 
-            final String compressionType = getCompressionType(metadata);
+            final CompressDecompressService.CompressionType compressionType = getCompressionType(metadata);
 
             final InputStream is = s3Object.getObjectContent();
 
@@ -179,11 +179,6 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             LOGGER.error("Failed to read the blob from name={}", getName(), e);
             return Optional.empty();
         }
-    }
-
-    String getCompressionType(Map<String, String> metadata) {
-        final String compressionType = metadata.get(COMPRESSION_TYPE);
-        return StringUtils.isEmpty(compressionType) ? "none" : compressionType;
     }
 
     protected byte[] readInputStream(InputStream is) throws IOException {
@@ -207,7 +202,8 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
         executor = directExecutor();
 
-        compressDecompressService = new CompressDecompressService(s3Config);
+        CompressDecompressService.CompressionType compressionType = findCompressionType(s3Config);
+        compressDecompressService = new CompressDecompressService(compressionType);
 
         dispatchFailureMeter = SharedMetricRegistry.newMeter("s3.dispatch.failure");
         dispatchTimer = SharedMetricRegistry.newTimer("s3.dispatch.timer");
@@ -250,6 +246,17 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             LOGGER.info("using default credential provider chain for s3 dispatcher");
             return DefaultAWSCredentialsProviderChain.getInstance();
         }
+    }
+
+    CompressDecompressService.CompressionType findCompressionType(Config config) {
+        final String compressionType = config.hasPath(COMPRESSION_TYPE) ? config.getString(COMPRESSION_TYPE).toUpperCase() : "NONE";
+        return CompressDecompressService.CompressionType.valueOf(compressionType);
+    }
+
+    CompressDecompressService.CompressionType getCompressionType(Map<String, String> metadata) {
+        String compressionType = metadata.get(COMPRESSION_TYPE);
+        compressionType = StringUtils.isEmpty(compressionType) ? "NONE" : compressionType;
+        return CompressDecompressService.CompressionType.valueOf(compressionType.toUpperCase());
     }
 
     @Override
