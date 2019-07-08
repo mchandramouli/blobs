@@ -192,12 +192,14 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
         new FileStore.Builder("data/somefile").build()
       }
     }
+
     it("should have autoShutdownHook when disableShutdown is disabled") {
       Given("disable shutdown as false")
       When("when an instance of file store is initialized")
       Then("it should have a shutdown hook")
       store.shutdownHookAdded should equal(true)
     }
+
     it("should have autoShutdownHook when disableShutdown is enabled") {
       Given("disable shutdown as true")
       When("when an instance of file store is initialized")
@@ -207,6 +209,23 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
 
       Then("it should not have shutdown hook")
       fileStore.shutdownHookAdded should equal(false)
+    }
+
+    it("should return correct compressionType when asked for") {
+      val metadata = Map[String, String]("compressionType" -> "gzip", "content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
+      val fileStore: FileStore = new FileStore.Builder("data")
+        .disableAutoShutdown()
+        .withCompressionType(CompressionType.GZIP)
+        .build()
+      fileStore.getCompressionType(metadata) shouldEqual CompressionType.GZIP
+    }
+
+    it("should return 'none' as compressionType when not present in metadata") {
+      val metadata = Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b").asJava
+      val fileStore: FileStore = new FileStore.Builder("data")
+        .disableAutoShutdown()
+        .build()
+      fileStore.getCompressionType(metadata) shouldEqual CompressionType.NONE
     }
   }
 }
