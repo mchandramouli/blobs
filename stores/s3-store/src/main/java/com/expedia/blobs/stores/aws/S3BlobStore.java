@@ -26,15 +26,17 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
+import com.expedia.blobs.core.io.BlobInputStream;
+import com.expedia.blobs.core.support.CompressDecompressService;
 import com.expedia.www.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -46,6 +48,9 @@ public class S3BlobStore extends AsyncSupport {
     private final String bucketName;
     private final TransferManager transferManager;
     private Thread shutdownHook = new Thread(() -> this.close());
+    private final CompressDecompressService compressDecompressService;
+
+    private final static String COMPRESSION_TYPE = "compressionType";
 
     @VisibleForTesting
     Boolean shutdownHookAdded = false;
@@ -55,6 +60,7 @@ public class S3BlobStore extends AsyncSupport {
 
         this.transferManager = builder.transferManager;
         this.bucketName = builder.bucketName;
+        this.compressDecompressService = builder.compressDecompressService;
 
         if (builder.closeOnShutdown) {
             this.shutdownHookAdded = builder.closeOnShutdown;
@@ -74,11 +80,13 @@ public class S3BlobStore extends AsyncSupport {
             final ObjectMetadata metadata = new ObjectMetadata();
             blob.getMetadataMap().forEach(metadata::addUserMetadata);
 
-            final InputStream stream = new ByteArrayInputStream(blob.getContent().toByteArray());
-            metadata.setContentLength(blob.getContent().size());
+            BlobInputStream blobInputStream = compressDecompressService.compressData(blob.getContent().toByteArray());
+
+            metadata.addUserMetadata(COMPRESSION_TYPE, compressDecompressService.getCompressionType());
+            metadata.setContentLength(blobInputStream.getLength());
 
             final PutObjectRequest putRequest =
-                    new PutObjectRequest(bucketName, blob.getKey(), stream, metadata)
+                    new PutObjectRequest(bucketName, blob.getKey(), blobInputStream.getStream(), metadata)
                             .withCannedAcl(CannedAccessControlList.BucketOwnerFullControl)
                             .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey()));
 
@@ -97,13 +105,18 @@ public class S3BlobStore extends AsyncSupport {
         try {
             final S3Object s3Object = transferManager.getAmazonS3Client().getObject(bucketName, key);
             final Map<String, String> objectMetadata = s3Object.getObjectMetadata().getUserMetadata();
-            try (final InputStream is = s3Object.getObjectContent()) {
-                Map<String, String> metadata = objectMetadata == null ? new HashMap<>(0) : objectMetadata;
+
+            Map<String, String> metadata = objectMetadata == null ? new HashMap<>(0) : objectMetadata;
+            final CompressDecompressService.CompressionType compressionType = getCompressionType(metadata);
+
+            final InputStream is = s3Object.getObjectContent();
+
+            try (InputStream uncompressedStream = CompressDecompressService.uncompressData(compressionType, is)) {
 
                 Blob blob = Blob.newBuilder()
                         .setKey(key)
                         .putAllMetadata(metadata)
-                        .setContent(ByteString.copyFrom(readInputStream(is)))
+                        .setContent(ByteString.copyFrom(readInputStream(uncompressedStream)))
                         .build();
 
                 return Optional.of(blob);
@@ -115,6 +128,12 @@ public class S3BlobStore extends AsyncSupport {
 
     protected byte[] readInputStream(InputStream is) throws IOException {
         return IOUtils.toByteArray(is);
+    }
+
+    CompressDecompressService.CompressionType getCompressionType(Map<String, String> metadata) {
+        String compressionType = metadata.get(COMPRESSION_TYPE);
+        compressionType = StringUtils.isEmpty(compressionType) ? "NONE" : compressionType;
+        return CompressDecompressService.CompressionType.valueOf(compressionType.toUpperCase());
     }
 
     @Override
@@ -132,6 +151,7 @@ public class S3BlobStore extends AsyncSupport {
         private int threadPoolSize;
         private int shutdownWaitInSeconds;
         private boolean closeOnShutdown;
+        private CompressDecompressService compressDecompressService;
 
         public Builder(String bucketName, TransferManager transferManager) {
             this.bucketName = bucketName;
@@ -161,11 +181,19 @@ public class S3BlobStore extends AsyncSupport {
             return this;
         }
 
+        public Builder withCompressionType(CompressDecompressService.CompressionType compressionType) {
+            this.compressDecompressService = new CompressDecompressService(compressionType);
+            return this;
+        }
+
 
         public S3BlobStore build() {
 
             Validate.notNull(transferManager);
             Validate.notEmpty(bucketName);
+            if (this.compressDecompressService == null) {
+                this.compressDecompressService = new CompressDecompressService(CompressDecompressService.CompressionType.NONE);
+            }
             return new S3BlobStore(this);
         }
     }
