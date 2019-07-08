@@ -20,6 +20,8 @@ package com.expedia.blobs.stores.io;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
+import com.expedia.blobs.core.io.BlobInputStream;
+import com.expedia.blobs.core.support.CompressDecompressService;
 import com.expedia.www.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
@@ -28,14 +30,19 @@ import com.google.gson.reflect.TypeToken;
 import com.google.protobuf.ByteString;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,6 +54,9 @@ public class FileStore extends AsyncSupport {
     }.getType();
     private final Charset Utf8 = Charset.forName("UTF-8");
     private Thread shutdownHook = new Thread(() -> this.close());
+    private final CompressDecompressService compressDecompressService;
+
+    private final static String COMPRESSION_TYPE = "compressionType";
 
     @VisibleForTesting
     Boolean shutdownHookAdded = false;
@@ -55,6 +65,7 @@ public class FileStore extends AsyncSupport {
         super(builder.threadPoolSize, builder.shutdownWaitInSeconds);
 
         this.directory = builder.directory;
+        this.compressDecompressService = builder.compressDecompressService;
 
         if (builder.closeOnShutdown) {
             shutdownHookAdded = builder.closeOnShutdown;
@@ -73,9 +84,17 @@ public class FileStore extends AsyncSupport {
             if (blob.getContent().size() > 0) {
                 final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), blob.getKey());
                 final byte[] data = blob.getContent().toByteArray();
-                final Map<String, String> metadata = blob.getMetadataMap();
-                FileUtils.writeByteArrayToFile(new File(blobPath), data);
-                FileUtils.write(new File(blobPath + ".meta.json"), gson.toJson(metadata), Utf8);
+
+                BlobInputStream blobInputStream = compressDecompressService.compressData(data);
+
+                final Map<String, String> blobMetadata = blob.getMetadataMap();
+
+                Map<String, String> userMetadata = new HashMap<>();
+                blobMetadata.forEach(userMetadata::put);
+                userMetadata.put(COMPRESSION_TYPE, compressDecompressService.getCompressionType());
+
+                FileUtils.writeByteArrayToFile(new File(blobPath), IOUtils.toByteArray(blobInputStream.getStream()));
+                FileUtils.write(new File(blobPath + ".meta.json"), gson.toJson(userMetadata), Utf8);
             }
         } catch (IOException e) {
             throw new BlobReadWriteException(e);
@@ -88,18 +107,30 @@ public class FileStore extends AsyncSupport {
             final String blobPath = FilenameUtils.concat(directory.getAbsolutePath(), key);
             final String meta = FileUtils.readFileToString(new File(blobPath + ".meta.json"), Utf8);
             final Map<String, String> metadata = gson.fromJson(meta, mapType);
+            final CompressDecompressService.CompressionType compressionType = getCompressionType(metadata);
+
             final byte[] data = FileUtils.readFileToByteArray(new File(blobPath));
+            final InputStream compressedDataStream = new ByteArrayInputStream(data);
+
+            final InputStream uncompressedDataStream = CompressDecompressService.uncompressData(compressionType, compressedDataStream);
+            final byte[] uncompressedData = IOUtils.toByteArray(uncompressedDataStream);
 
             Blob blob = Blob.newBuilder()
                     .setKey(key)
                     .putAllMetadata(metadata)
-                    .setContent(ByteString.copyFrom(data))
+                    .setContent(ByteString.copyFrom(uncompressedData))
                     .build();
 
             return Optional.of(blob);
         } catch (IOException e) {
             throw new BlobReadWriteException(e);
         }
+    }
+
+    CompressDecompressService.CompressionType getCompressionType(Map<String, String> metadata) {
+        String compressionType = metadata.get(COMPRESSION_TYPE);
+        compressionType = StringUtils.isEmpty(compressionType) ? "NONE" : compressionType;
+        return CompressDecompressService.CompressionType.valueOf(compressionType.toUpperCase());
     }
 
     @Override
@@ -116,6 +147,7 @@ public class FileStore extends AsyncSupport {
         private int threadPoolSize;
         private int shutdownWaitInSeconds;
         private boolean closeOnShutdown;
+        private CompressDecompressService compressDecompressService;
 
         public Builder(String directory) {
             this(new File(directory));
@@ -143,12 +175,20 @@ public class FileStore extends AsyncSupport {
             return this;
         }
 
+        public Builder withCompressionType(CompressDecompressService.CompressionType compressionType) {
+            this.compressDecompressService = new CompressDecompressService(compressionType);
+            return this;
+        }
+
         public FileStore build() {
 
             Validate.isTrue(directory.exists() &&
                     directory.isDirectory() &&
                     directory.canWrite(), "Argument must be an existing directory that is writable");
 
+            if (this.compressDecompressService == null) {
+                this.compressDecompressService = new CompressDecompressService(CompressDecompressService.CompressionType.NONE);
+            }
             return new FileStore(this);
         }
     }

@@ -5,6 +5,7 @@ import java.util.Optional
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.expedia.blobs.core.support.CompressDecompressService.CompressionType
 import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl}
 import com.expedia.www.blobs.model.Blob
 import com.google.protobuf.ByteString
@@ -61,6 +62,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
       val fileStoreBuilder: FileStore.Builder = new FileStore.Builder("data")
         .withShutdownWaitInSeconds(60)
         .withThreadPoolSize(1)
+        .withCompressionType(CompressionType.NONE)
 
       store = new TestableFileStore(fileStoreBuilder)
     }
@@ -138,7 +140,7 @@ class FileStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with 
         Then("it should successfully read it")
         read.get().getKey should equal("key1")
         read.get().getContent.toByteArray should equal("""{"key":"value"}""".getBytes)
-        read.get().getMetadataMap.asScala should equal(Map[String, String]("content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d"))
+        read.get().getMetadataMap.asScala should equal(Map[String, String]("compressionType" -> "NONE","content-type" -> "application/json", "blob-type" -> "request", "a" -> "b", "c" -> "d"))
       }
     }
     it("should return an empty object if timeout occurs before the read") {
