@@ -8,6 +8,7 @@ You can look at our sample projects for how to save a blob through a simple web 
 
 ## Table of content
 
+- [Setup](#setup)
 - [Blobs Core](#blobs-core)
 - [Haystack Blobs](#haystack-blobs)
 	* [Client](#client)
@@ -18,6 +19,20 @@ You can look at our sample projects for how to save a blob through a simple web 
 - [Stores](#stores)
 	* [File Store](#file-store)
 	* [S3 Store](#s3-store)
+
+## Setup
+
+##### Clone
+
+Use the following command to clone the repository including the submodules present in it:
+
+`git clone --recursive git@github.com:mchandramouli/blobs.git`
+
+##### Build
+
+Use the following command to build the repository:
+
+`mvn clean package`
 
 ## Blobs Core
 
@@ -85,7 +100,7 @@ S3 dispatcher uses aws s3 sdk and its TransferManager apis and we require follow
 
 ## Models
 
-The model is used to compile proto file into Java files.
+The blob-grpc-models is used to compile `protos` into Java files. The protos are present in a git submodule i.e. [haystack-idl](https://github.com/ExpediaDotCom/haystack-idl).
 
 ## Span-Blob Context
 
