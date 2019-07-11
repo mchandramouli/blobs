@@ -1,10 +1,10 @@
 package com.expedia.blobs.stores.aws
 
 import com.amazonaws.event.{ProgressEvent, ProgressEventType}
+import org.easymock.EasyMock.{replay, verify}
+import org.scalatest.easymock.EasyMockSugar._
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
 import org.slf4j.Logger
-import org.scalatest.easymock.EasyMockSugar._
-import org.easymock.EasyMock.{replay, verify}
 
 class UploadProgressListenerSpec extends FunSpec with GivenWhenThen with BeforeAndAfter with Matchers {
   describe("class the listens to the state changes during an upload") {

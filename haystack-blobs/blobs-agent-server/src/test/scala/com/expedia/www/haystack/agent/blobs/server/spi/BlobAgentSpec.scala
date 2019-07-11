@@ -8,8 +8,8 @@ import java.util.concurrent.TimeUnit
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher
 import com.typesafe.config.ConfigFactory
 import io.grpc.Server
-import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.easymock.EasyMockSugar
+import org.scalatest.{FunSpec, Matchers}
 
 class BlobAgentSpec extends FunSpec with Matchers with EasyMockSugar {
 
