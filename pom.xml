@@ -75,7 +75,6 @@
         <commons-lang3.version>3.4</commons-lang3.version>
         <commons-lang.version>2.6</commons-lang.version>
         <commons-io.version>2.6</commons-io.version>
-        <gson.version>2.8.5</gson.version>
         <guava.version>19.0</guava.version>
 
         <pegdown.version>1.6.0</pegdown.version>
@@ -85,7 +84,6 @@
         <junit.version>4.12</junit.version>
         <easymock.version>3.4</easymock.version>
         <mockito.version>2.28.2</mockito.version>
-        <powermock.version>1.7.4</powermock.version>
 
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
@@ -99,7 +97,9 @@
         <skipGpg>true</skipGpg>
         <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
         <haystack-client-core.version>0.2.8-SNAPSHOT</haystack-client-core.version>
-        <aws-java-sdk-s3.version>1.11.447</aws-java-sdk-s3.version>
+        <!--Need to check the working of s3 while updating the version as it will cause
+        s3 upload in haystack-agent to fail due to incompatible versions of `aws-java-sdk-core`-->
+        <aws-java-sdk-s3.version>1.11.128</aws-java-sdk-s3.version>
         <snappy.version>1.1.7.3</snappy.version>
     </properties>
 
