@@ -49,7 +49,7 @@ public interface BlobContext {
      * @return string
      */
     default String makeKey(BlobType type) {
-        return String.format("%s/%s/%s/%s-%s",
+        return String.format("%s_%s_%s_%s_%s",
                              getServiceName(),
                              getOperationName(),
                              getOperationId(),
