@@ -16,6 +16,7 @@ You can look at our sample projects for how to save a blob through a simple web 
 	* [Dispatchers](#dispatchers)
 	* [Models](#models)
 	* [Span-Blob Context](#span-blob-context)
+	* [Reverse Proxy](#reverse-proxy)
 - [Stores](#stores)
 	* [File Store](#file-store)
 	* [S3 Store](#s3-store)
@@ -110,6 +111,76 @@ Whenever a blob is sent to Haystack-Agent, the key produced for that blob is sav
 The name of the tag can be according to the `BlobType`(inside [blobs core](blobs-core) module). There can be 2 types of tags to store a blob key inside span:
 1. request-blob
 2. response-blob
+
+## Reverse Proxy
+
+To run the HTTP proxy to GRPC service locally please follow the below steps as we have not automated everything for now. We have used [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) to generate the stub and proxy files.
+
+1. Inside `reverse-proxy`, build using `go build`
+2. To run the server use `./main -http-port=:34002 -grpc-server-endpoint=localhost:34001`. 
+
+	The command line arguments are optional with default value of `http-port` as `:34002` and `grpc-server-endpoint` as `localhost:34001`
+
+##### To generate your own stub and proxy files use the following steps:
+
+1. Copy `blob.proto` and `blobAgent.proto` from [haystack-idl](https://github.com/ExpediaDotCom/haystack-idl) to `reverse-proxy` folder.
+
+2. Inside `blobAgent.proto` replace
+```
+rpc readBlobAsString(BlobSearch) returns (FormattedBlobReadResponse);
+```
+with
+```
+rpc readBlobAsString(BlobSearch) returns (FormattedBlobReadResponse) {
+       option (google.api.http) = {
+            get: "/getBlob/{key}"
+            response_body: "data"
+        };
+   }
+```
+
+Note: You need not commit this change.
+
+2. Run the following two commands. Make sure you have go installed on you local. If not, use `brew install go`, `export PATH="$PATH:$GOPATH/bin"`(specify `$GOPATH` if not already present)
+```
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway v1.9.4
+go get -u github.com/golang/protobuf/protoc-gen-go v1.9.4
+```
+
+3. Create a folder named `blob` inside the `reverse-proxy` module, if not already present.
+
+4. Inside `reverse-proxy`, generate gRPC stub using
+```
+protoc -I/usr/local/include -I. \
+  -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway\@v1.9.4/third_party/googleapis \
+  --plugin=protoc-gen-go=$GOPATH/bin/protoc-gen-go \
+  --go_out=plugins=grpc:blob/. \
+  ./blobAgent.proto
+```
+
+5. Inside `reverse-proxy`, generate reverse-proxy using `protoc-gen-grpc-gateway`
+```
+protoc -I/usr/local/include -I. \
+  -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway\@v1.9.4/third_party/googleapis \
+  --plugin=protoc-gen-grpc-gateway=$GOPATH/bin/protoc-gen-grpc-gateway  \
+  --grpc-gateway_out=logtostderr=true:blob/. \
+  ./blobAgent.proto
+```
+
+6. Inside `reverse-proxy`, generate `Blob` model
+```
+protoc -I/usr/local/include -I. \
+  -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway\@v1.9.4/third_party/googleapis \
+  --plugin=protoc-gen-go=$GOPATH/bin/protoc-gen-go \
+  --go_out=plugins=grpc:blob/. \
+  ./blob.proto
+```
+
+7. Inside `reverse-proxy` call `go build`
+
+8. To run the server use `./main -http-port=:34002 -grpc-server-endpoint=localhost:34001`. 
+
+	The command line arguments are optional with default value of `http-port` as `:34002` and `grpc-server-endpoint` as `localhost:34001`
 
 
 ## Stores
