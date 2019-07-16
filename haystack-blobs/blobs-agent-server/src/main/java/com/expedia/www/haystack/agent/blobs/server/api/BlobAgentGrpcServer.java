@@ -18,22 +18,33 @@ package com.expedia.www.haystack.agent.blobs.server.api;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
+import com.expedia.blobs.core.ContentType;
 import com.expedia.www.blobs.model.Blob;
-import com.expedia.www.haystack.agent.blobs.api.BlobAgentGrpc;
-import com.expedia.www.haystack.agent.blobs.api.BlobReadResponse;
-import com.expedia.www.haystack.agent.blobs.api.BlobSearch;
-import com.expedia.www.haystack.agent.blobs.api.DispatchResult;
+import com.expedia.www.haystack.agent.blobs.api.*;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.RateLimitException;
 import com.expedia.www.haystack.agent.core.metrics.SharedMetricRegistry;
+import com.google.protobuf.ByteString;
+import com.sun.xml.fastinfoset.stax.StAXDocumentParser;
 import io.grpc.stub.StreamObserver;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stax.StAXSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
@@ -43,6 +54,8 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
     private final int maxBlobSizeInBytes;
     private final Timer dispatchTimer;
     private final Meter dispatchFailureMeter;
+
+    private final static String CONTENT_TYPE = "content-type";
 
     public BlobAgentGrpcServer(final List<BlobDispatcher> dispatchers, final int maxBlobSizeInBytes) {
         Validate.notEmpty(dispatchers, "Dispatchers can't be empty");
@@ -103,13 +116,12 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
         BlobReadResponse.Builder result = BlobReadResponse.newBuilder();
 
 
-       Optional<Blob> currentBlob = dispatchers.stream().map(blobDispatcher -> blobDispatcher.read(blobKey)).filter(Optional::isPresent)
-               .map(Optional::get).findFirst();
+        Optional<Blob> currentBlob = dispatchers.stream().map(blobDispatcher -> blobDispatcher.read(blobKey)).filter(Optional::isPresent)
+                .map(Optional::get).findFirst();
 
         if (currentBlob.isPresent()) {
             result.setBlob(currentBlob.get()).setCode(BlobReadResponse.ResultCode.SUCCESS);
-        }
-        else {
+        } else {
             result.setErrorMessage(String.format("Failed to read blob with key %s from ", blobKey) +
                     Arrays.toString(dispatchers.stream().map(d -> d.getName()).toArray()));
             result.setCode(BlobReadResponse.ResultCode.UNKNOWN_ERROR);
@@ -117,5 +129,55 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
 
         responseObserver.onNext(result.build());
         responseObserver.onCompleted();
+    }
+
+    public void readBlobAsString(final BlobSearch blobSearch, final StreamObserver<FormattedBlobReadResponse> responseObserver) {
+        final String blobKey = blobSearch.getKey();
+
+        FormattedBlobReadResponse.Builder result = FormattedBlobReadResponse.newBuilder();
+
+
+        Optional<Blob> currentBlob = dispatchers.stream().map(blobDispatcher -> blobDispatcher.read(blobKey)).filter(Optional::isPresent)
+                .map(Optional::get).findFirst();
+
+        if (currentBlob.isPresent()) {
+            final Map<String, String> metadata = currentBlob.get().getMetadataMap();
+            final String contentType = metadata.get(CONTENT_TYPE);
+
+            String blobString = parseBlob(currentBlob.get().getContent(), contentType);
+
+            result.setData(blobString);
+        } else {
+            result.setData("");
+        }
+
+        responseObserver.onNext(result.build());
+        responseObserver.onCompleted();
+    }
+
+    String parseBlob(ByteString content, String contentType) {
+        String blob = null;
+        try {
+            if (contentType == ContentType.FAST_INFOSET.getType()) {
+                blob = parseFastInfosetToString(content);
+            } else {
+                blob = IOUtils.toString(content.toByteArray());
+            }
+        } catch (Exception ex) {
+            LOGGER.error("Error parsing blob data to string");
+        }
+        return blob;
+    }
+
+    private String parseFastInfosetToString(ByteString content) throws TransformerException {
+        final InputStream fiDocument = new ByteArrayInputStream(content.toByteArray());
+
+        final XMLStreamReader streamReader = new StAXDocumentParser(fiDocument);
+
+        final Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        final StringWriter stringWriter = new StringWriter();
+        transformer.transform(new StAXSource(streamReader), new StreamResult(stringWriter));
+
+        return stringWriter.toString();
     }
 }

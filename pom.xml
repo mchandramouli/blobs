@@ -101,6 +101,7 @@
         s3 upload in haystack-agent to fail due to incompatible versions of `aws-java-sdk-core`-->
         <aws-java-sdk-s3.version>1.11.128</aws-java-sdk-s3.version>
         <snappy.version>1.1.7.3</snappy.version>
+        <fastinfoset.version>1.2.16</fastinfoset.version>
     </properties>
 
     <dependencyManagement>
@@ -157,6 +158,11 @@
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
                 <version>${snappy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.xml.fastinfoset</groupId>
+                <artifactId>FastInfoset</artifactId>
+                <version>${fastinfoset.version}</version>
             </dependency>
 
 

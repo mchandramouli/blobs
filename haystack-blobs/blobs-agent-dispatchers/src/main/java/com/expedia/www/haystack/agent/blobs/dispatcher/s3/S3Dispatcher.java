@@ -21,6 +21,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
@@ -228,10 +229,14 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
         }
 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                .withRegion(region)
+//                .withRegion(region)
                 .withCredentials(buildCredentialProvider(config))
                 .withClientConfiguration(clientConfiguration)
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:4568", region))
+                .withPathStyleAccessEnabled(true)
+                .disableChunkedEncoding()
                 .build();
+
         return TransferManagerBuilder.standard().withS3Client(s3)
                 .withMultipartUploadThreshold(MULTIPART_UPLOAD_THRESHOLD).build();
     }

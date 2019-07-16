@@ -36,6 +36,10 @@
             <groupId>com.expedia.www</groupId>
             <artifactId>haystack-agent-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.sun.xml.fastinfoset</groupId>
+            <artifactId>FastInfoset</artifactId>
+        </dependency>
 
         <!--Test-->
         <dependency>
