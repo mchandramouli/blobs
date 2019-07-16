@@ -26,6 +26,7 @@ public class ContentType {
     private final String type;
     public static ContentType JSON = ContentType.from("application/json");
     public static ContentType XML = ContentType.from("application/xml");
+    public static ContentType FAST_INFOSET = ContentType.from("application/fastinfoset");
 
     private ContentType(String type) {
         Validate.notEmpty(type);
