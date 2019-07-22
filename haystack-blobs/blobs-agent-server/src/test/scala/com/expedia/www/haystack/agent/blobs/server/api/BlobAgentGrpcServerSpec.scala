@@ -46,10 +46,6 @@ class BlobAgentGrpcServerSpec extends FunSpec with BeforeAndAfter with Matchers 
 
   describe("blob agent server") {
 
-    before {
-
-    }
-
     it("should fail during construction if no dispatcher exists") {
       val caught = intercept[Exception] {
         new BlobAgentGrpcServer(Collections.emptyList(), 1024 * 1024)
