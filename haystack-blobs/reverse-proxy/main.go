@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context" // Use "golang.org/x/net/context" for Golang version <= 1.6
+	"context"
 	"flag"
 	"net/http"
 	"log"
@@ -10,32 +10,47 @@ import (
 	"google.golang.org/grpc"
 
 	gw "example.com/main/blob"
+	"os"
 )
 
-var (
-	// command-line options:
-	// gRPC server endpoint
-	grpcServerEndpoint    = flag.String("grpc-server-endpoint", "localhost:34001", "gRPC server endpoint")
-	proxyServerPortNumber = flag.String("http-port", ":34002", "Proxy server port number")
-)
+const GRPC_SERVER_ENDPOINT_ENV_VAR = "grpc-server-endpoint"
+const DEFAULT_GRPC_SERVER_ENDPOINT = "haystack-agent:34001"
+const PROXY_SERVER_HTTP_PORT = "http-port"
+const DEFAULT_PROXY_SERVER_HTTP_PORT = ":34002"
+
+func getGrpcServerEndpoint() string {
+	grpcServerEndpoint := os.Getenv(GRPC_SERVER_ENDPOINT_ENV_VAR)
+	if grpcServerEndpoint == "" {
+		return DEFAULT_GRPC_SERVER_ENDPOINT
+	}
+	return grpcServerEndpoint
+}
+
+func getProxyServerHttpPort() string {
+	proxyServerHttpPort := os.Getenv(PROXY_SERVER_HTTP_PORT)
+	if proxyServerHttpPort == "" {
+		return DEFAULT_PROXY_SERVER_HTTP_PORT
+	}
+
+	return proxyServerHttpPort
+}
 
 func run() error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Register gRPC server endpoint
-	// Note: Make sure the gRPC server is running properly and accessible
+	grpcServerEndpoint := getGrpcServerEndpoint()
+	proxyServerHttpPort := getProxyServerHttpPort()
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := gw.RegisterBlobAgentHandlerFromEndpoint(ctx, mux, *grpcServerEndpoint, opts)
+	err := gw.RegisterBlobAgentHandlerFromEndpoint(ctx, mux, grpcServerEndpoint, opts)
 	if err != nil {
 		return err
 	}
 
-	// Start HTTP server (and proxy calls to gRPC server endpoint)
-	log.Print("HTTP Server started at port " + *proxyServerPortNumber + " for grpc server endpoint=" + *grpcServerEndpoint)
-	return http.ListenAndServe(*proxyServerPortNumber, mux)
+	log.Print("HTTP Server started at port " + proxyServerHttpPort + " for grpc server endpoint=" + grpcServerEndpoint)
+	return http.ListenAndServe(proxyServerHttpPort, mux)
 }
 
 func main() {
