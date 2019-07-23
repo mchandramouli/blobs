@@ -70,6 +70,9 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     private final static String AWS_SECRET_KEY = "awsSecretKey";
     private final static String MAX_CONNECTIONS = "maxConnections";
     private final static String KEEP_ALIVE = "keepAlive";
+    private final static String AWS_SERVICE_ENDPOINT = "serviceEndpoint";
+    private final static String AWS_PATH_STYLE_ACCESS_ENABLED = "pathStyleAccessEnabled";
+    private final static String AWS_DISABLE_CHUNKED_ENCODING = "disableChunkedEncoding";
 
     private final static String SHOULD_WAIT_FOR_UPLOAD = "shouldWaitForUpload";
 
@@ -214,8 +217,6 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
 
     private static TransferManager createTransferManager(final Config config) {
         Validate.isTrue(config.hasPath(REGION_PROPERTY), "s3 bucket region can't be empty");
-        final String region = config.getString(REGION_PROPERTY);
-
         final int maxConnections = config.hasPath(MAX_CONNECTIONS) ? config.getInt(MAX_CONNECTIONS) : 50;
         final boolean keepAlive = config.hasPath(KEEP_ALIVE) && config.getBoolean(KEEP_ALIVE);
         final int retryCount = config.hasPath(RETRY_COUNT) ? config.getInt(RETRY_COUNT) : -1;
@@ -228,17 +229,33 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             clientConfiguration.setMaxErrorRetry(retryCount);
         }
 
-        final AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-//                .withRegion(region)
-                .withCredentials(buildCredentialProvider(config))
-                .withClientConfiguration(clientConfiguration)
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:4568", region))
-                .withPathStyleAccessEnabled(true)
-                .disableChunkedEncoding()
-                .build();
+        final AmazonS3 s3 = getS3Client(config, clientConfiguration);
 
         return TransferManagerBuilder.standard().withS3Client(s3)
                 .withMultipartUploadThreshold(MULTIPART_UPLOAD_THRESHOLD).build();
+    }
+
+    private static AmazonS3 getS3Client(Config config, ClientConfiguration clientConfiguration) {
+        final String region = config.getString(REGION_PROPERTY);
+        final boolean pathStyleAccessEnabled = config.hasPath(AWS_PATH_STYLE_ACCESS_ENABLED) ? config.getBoolean(AWS_PATH_STYLE_ACCESS_ENABLED) : false;
+        final boolean disableChunkedEncoding = config.hasPath(AWS_DISABLE_CHUNKED_ENCODING) ? config.getBoolean(AWS_DISABLE_CHUNKED_ENCODING) : false;
+
+        AmazonS3ClientBuilder s3ClientBuilder = AmazonS3ClientBuilder.standard()
+                .withCredentials(buildCredentialProvider(config))
+                .withClientConfiguration(clientConfiguration)
+                .withPathStyleAccessEnabled(pathStyleAccessEnabled);
+
+        if (config.hasPath(AWS_SERVICE_ENDPOINT)) {
+            s3ClientBuilder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.getString(AWS_SERVICE_ENDPOINT), region));
+        } else {
+            s3ClientBuilder.withRegion(region);
+        }
+
+        if (disableChunkedEncoding) {
+            s3ClientBuilder.disableChunkedEncoding();
+        }
+
+        return s3ClientBuilder.build();
     }
 
     @VisibleForTesting
