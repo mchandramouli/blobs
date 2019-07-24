@@ -18,7 +18,7 @@ import java.util.ServiceLoader;
 
 public class BlobAgent implements Agent {
     private static Logger LOGGER = LoggerFactory.getLogger(BlobAgent.class);
-    private final static String MAX_BLOB_SIZE_KB = "maxBlobSizeInKB";
+    private final static String MAX_BLOB_SIZE_KB = "max.blob.size.in.kb";
     private final static String DISPATCHERS = "dispatchers";
     private final static String PORT = "port";
 

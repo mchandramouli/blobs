@@ -39,7 +39,7 @@ class TestDispatcher extends BlobDispatcher {
     */
   override def initialize(conf: Config): Unit = {
     isInitialized = true
-    assert(conf != null && conf.getString("bucketName") == "mybucket" && conf.getString("region") == "us-east-1")
+    assert(conf != null && conf.getString("bucket.name") == "mybucket" && conf.getString("region") == "us-east-1")
   }
 
   /**

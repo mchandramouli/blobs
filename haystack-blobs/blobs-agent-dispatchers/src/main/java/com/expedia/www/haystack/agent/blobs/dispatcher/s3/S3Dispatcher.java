@@ -63,24 +63,25 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     private final static Logger LOGGER = LoggerFactory.getLogger(S3Dispatcher.class);
 
-    private final static String BUCKET_NAME_PROPERTY = "bucketName";
+    private final static String BUCKET_NAME_PROPERTY = "bucket.name";
     private final static String REGION_PROPERTY = "region";
-    private final static String RETRY_COUNT = "retryCount";
-    private final static String AWS_ACCESS_KEY = "awsAccessKey";
-    private final static String AWS_SECRET_KEY = "awsSecretKey";
-    private final static String MAX_CONNECTIONS = "maxConnections";
-    private final static String KEEP_ALIVE = "keepAlive";
-    private final static String AWS_SERVICE_ENDPOINT = "serviceEndpoint";
-    private final static String AWS_PATH_STYLE_ACCESS_ENABLED = "pathStyleAccessEnabled";
-    private final static String AWS_DISABLE_CHUNKED_ENCODING = "disableChunkedEncoding";
+    private final static String RETRY_COUNT = "retry.count";
+    private final static String AWS_ACCESS_KEY = "aws.access.key";
+    private final static String AWS_SECRET_KEY = "aws.secret.key";
+    private final static String MAX_CONNECTIONS = "max.connections";
+    private final static String KEEP_ALIVE = "keep.alive";
+    private final static String AWS_SERVICE_ENDPOINT = "service.endpoint";
+    private final static String AWS_PATH_STYLE_ACCESS_ENABLED = "path.style.access.enabled";
+    private final static String AWS_DISABLE_CHUNKED_ENCODING = "disable.chunked.encoding";
 
-    private final static String SHOULD_WAIT_FOR_UPLOAD = "shouldWaitForUpload";
+    private final static String SHOULD_WAIT_FOR_UPLOAD = "should.wait.for.upload";
 
     private final static Long MULTIPART_UPLOAD_THRESHOLD = 5L * 1024 * 1024;
 
-    private final static String MAX_OUTSTANDING_REQUESTS = "maxOutstandingRequests";
+    private final static String MAX_OUTSTANDING_REQUESTS = "max.outstanding.requests";
 
-    private final static String COMPRESSION_TYPE = "compressionType";
+    private final static String COMPRESSION_TYPE_CONFIG_KEY = "compression.type";
+    private final static String COMPRESSION_TYPE_META_KEY = "compressionType";
 
     private TransferManager transferManager;
     private String bucketName;
@@ -138,7 +139,7 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
             final BlobInputStream blobInputStream = compressDecompressService.compressData(blob.getContent().toByteArray());
 
             metadata.setContentLength(blobInputStream.getLength());
-            metadata.addUserMetadata(COMPRESSION_TYPE, compressDecompressService.getCompressionType());
+            metadata.addUserMetadata(COMPRESSION_TYPE_META_KEY, compressDecompressService.getCompressionType());
 
             final PutObjectRequest putRequest =
                     new PutObjectRequest(bucketName, blob.getKey(), blobInputStream.getStream(), metadata)
@@ -271,12 +272,12 @@ public class S3Dispatcher implements BlobDispatcher, AutoCloseable {
     }
 
     CompressDecompressService.CompressionType findCompressionType(Config config) {
-        final String compressionType = config.hasPath(COMPRESSION_TYPE) ? config.getString(COMPRESSION_TYPE).toUpperCase() : "NONE";
+        final String compressionType = config.hasPath(COMPRESSION_TYPE_CONFIG_KEY) ? config.getString(COMPRESSION_TYPE_CONFIG_KEY).toUpperCase() : "NONE";
         return CompressDecompressService.CompressionType.valueOf(compressionType);
     }
 
     CompressDecompressService.CompressionType getCompressionType(Map<String, String> metadata) {
-        String compressionType = metadata.get(COMPRESSION_TYPE);
+        String compressionType = metadata.get(COMPRESSION_TYPE_META_KEY);
         compressionType = StringUtils.isEmpty(compressionType) ? "NONE" : compressionType;
         return CompressDecompressService.CompressionType.valueOf(compressionType.toUpperCase());
     }

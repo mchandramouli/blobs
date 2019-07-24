@@ -65,12 +65,12 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should check if bucket name is not empty while initializing the dispatcher") {
       val config = ConfigFactory.parseString(
         """
-          |bucketName = ""
-          |maxOutstandingRequests = 50
-          |shouldWaitForUpload = false
-          |awsAccessKey = "my-access-key"
-          |awsSecretKey = "my-secret-key"
-          |compressionType = "null"
+          |bucket.name = ""
+          |max.outstanding.requests = 50
+          |should.wait.for.upload = false
+          |aws.access.key = "my-access-key"
+          |aws.secret.key = "my-secret-key"
+          |compression.type = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -85,11 +85,11 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should check if bucket name is present while initializing the dispatcher") {
       val config = ConfigFactory.parseString(
         """
-          |maxOutstandingRequests = 50
-          |shouldWaitForUpload = false
-          |awsAccessKey = "my-access-key"
-          |awsSecretKey = "my-secret-key"
-          |compressionType = "null"
+          |max.outstanding.requests = 50
+          |should.wait.for.upload = false
+          |aws.access.key = "my-access-key"
+          |aws.secret.key = "my-secret-key"
+          |compression.type = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -104,11 +104,11 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should check if maxOutstandingRequests is present while initializing the dispatcher") {
       val config = ConfigFactory.parseString(
         """
-          |bucketName = "haystack"
-          |shouldWaitForUpload = false
-          |awsAccessKey = "my-access-key"
-          |awsSecretKey = "my-secret-key"
-          |compressionType = "null"
+          |bucket.name = "haystack"
+          |should.wait.for.upload = false
+          |aws.access.key = "my-access-key"
+          |aws.secret.key = "my-secret-key"
+          |compression.type = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -123,12 +123,12 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should check if maxOutstandingRequests is positive while initializing the dispatcher") {
       val config = ConfigFactory.parseString(
         """
-          |bucketName = "haystack"
-          |maxOutstandingRequests = 0
-          |shouldWaitForUpload = false
-          |awsAccessKey = "my-access-key"
-          |awsSecretKey = "my-secret-key"
-          |compressionType = "null"
+          |bucket.name = "haystack"
+          |max.outstanding.requests = 0
+          |should.wait.for.upload = false
+          |aws.access.key = "my-access-key"
+          |aws.secret.key = "my-secret-key"
+          |compression.type = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -143,12 +143,12 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should check if regionName is present while initializing the dispatcher") {
       val config = ConfigFactory.parseString(
         """
-          |bucketName = "haystack"
-          |maxOutstandingRequests = 50
-          |shouldWaitForUpload = false
-          |awsAccessKey = "my-access-key"
-          |awsSecretKey = "my-secret-key"
-          |compressionType = "null"
+          |bucket.name = "haystack"
+          |max.outstanding.requests = 50
+          |should.wait.for.upload = false
+          |aws.access.key = "my-access-key"
+          |aws.secret.key = "my-secret-key"
+          |compression.type = "null"
         """.stripMargin)
 
       val dispatcher = new S3Dispatcher()
@@ -263,11 +263,11 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       When("given the complete configuration")
       val config = ConfigFactory.parseString(
         """
-          |bucketName = "haystack"
-          |maxOutstandingRequests = 50
-          |shouldWaitForUpload = false
-          |awsAccessKey = "my-access-key"
-          |awsSecretKey = "my-secret-key"
+          |bucket.name = "haystack"
+          |max.outstanding.requests = 50
+          |should.wait.for.upload = false
+          |aws.access.key = "my-access-key"
+          |aws.secret.key = "my-secret-key"
         """.stripMargin)
 
       And("credential provider is build")
@@ -283,8 +283,8 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should build the credential provider using default credential provider") {
       val config = ConfigFactory.parseString(
         """
-          |bucketName = "haystack"
-          |maxOutstandingRequests = 50
+          |bucket.name = "haystack"
+          |max.outstanding.requests = 50
         """.stripMargin)
 
       val provider = S3Dispatcher.buildCredentialProvider(config)
@@ -361,7 +361,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     it("should find the actual compression type(GZIP) from config") {
       val config = ConfigFactory.parseString(
         """
-          |compressionType = "SNAPPY"
+          |compression.type = "SNAPPY"
         """.stripMargin)
 
       val s3Dispatcher = new S3Dispatcher()
@@ -370,7 +370,7 @@ class S3DispatcherSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
       compressionType shouldEqual CompressDecompressService.CompressionType.SNAPPY
     }
 
-    it("should return 'NONE' for compressionType if not specified in config") {
+    it("should return 'NONE' for compression.type if not specified in config") {
       val config = ConfigFactory.parseString(
         """
         """.stripMargin)

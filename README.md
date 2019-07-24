@@ -50,18 +50,18 @@ agents {
   blobs {
     enabled = true
     port = 34001
-    maxBlobSizeInKB = 1536
+    max.blob.size.in.kb = 1536
     dispatchers {
       s3 {
-        keepAlive = true
-        maxOutstandingRequests = 50
-        shouldWaitForUpload = false
-        maxConnections = 50
-        retryCount = 1
-        bucketName = "haystack-blobs"
+        keep.alive = true
+        max.outstanding.requests = 50
+        should.wait.for.upload = false
+        max.connections = 50
+        retry.count = 1
+        bucket.name = "haystack-blobs"
         region = "us-east-1"
-        awsAccessKey = "accessKey"
-        awsSecretKey = "secretKey"
+        aws.access.key = "accessKey"
+        aws.secret.key = "secretKey"
       }
     }
   }
@@ -90,13 +90,13 @@ A `blob proto agent` is present to receive the blob from a GRPC client and then 
 S3 dispatcher uses aws s3 sdk and its TransferManager apis and we require following mandatory configuration properties for it to work.
 
 1. region - aws region for e.g. us-west-2
-2. bucketName - aws s3 bucket name
-3. awsAccessKey and awsSecretKey - Optional, use them if want to use static AWS credentials.
-4. maxOutstandingRequests - maximum parallel uploads to s3, else RateLimitException is thrown and sent to the client
-5. keepAlive - Optional, TCP keep alive for aws client. Default: `false`
-6. shouldWaitForUpload - Optional, define is it should wait for complete upload of blob to S3. Default: `false`		
-7. maxConnections - Optional,maximum connections for aws client
-8. retryCount - Optional, maximum error retry for upload
+2. bucket.name - aws s3 bucket name
+3. aws.access.key and aws.secret.key - Optional, use them if want to use static AWS credentials.
+4. max.outstanding.requests - maximum parallel uploads to s3, else RateLimitException is thrown and sent to the client
+5. keep.alive - Optional, TCP keep alive for aws client. Default: `false`
+6. should.wait.for.upload - Optional, define is it should wait for complete upload of blob to S3. Default: `false`		
+7. max.connections - Optional,maximum connections for aws client
+8. retry.count - Optional, maximum error retry for upload
 
 
 ## Models

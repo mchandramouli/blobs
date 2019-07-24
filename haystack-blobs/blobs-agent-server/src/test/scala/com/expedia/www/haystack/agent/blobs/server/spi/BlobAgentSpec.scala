@@ -50,7 +50,7 @@ class BlobAgentSpec extends FunSpec with Matchers with EasyMockSugar {
           |
           |    dispatchers {
           |      test-dispatcher {
-          |        bucketName = "mybucket"
+          |        bucket.name = "mybucket"
           |        region = "us-east-1"
           |      }
           |    }
@@ -71,7 +71,7 @@ class BlobAgentSpec extends FunSpec with Matchers with EasyMockSugar {
         |
         |    dispatchers {
         |      test-dispatcher {
-        |        bucketName = "mybucket"
+        |        bucket.name = "mybucket"
         |        region = "us-east-1"
         |      }
         |    }
@@ -92,7 +92,7 @@ class BlobAgentSpec extends FunSpec with Matchers with EasyMockSugar {
         |
         |    dispatchers {
         |      test-dispatcher {
-        |        bucketName = "mybucket"
+        |        bucket.name = "mybucket"
         |        region = "us-east-1"
         |      }
         |    }
@@ -110,11 +110,11 @@ class BlobAgentSpec extends FunSpec with Matchers with EasyMockSugar {
     val agent = new BlobAgent()
     val cfg = ConfigFactory.parseString(
       """
-        |    maxBlobSizeInKB = 50
+        |    max.blob.size.in.kb = 50
         |
         |    dispatchers {
         |      test-dispatcher {
-        |        bucketName = "mybucket"
+        |        bucket.name = "mybucket"
         |        region = "us-east-1"
         |      }
         |    }
