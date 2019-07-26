@@ -17,18 +17,14 @@
  */
 package com.expedia.blobs.core.io;
 
-import java.io.Closeable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.util.concurrent.*;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 class ManagedAsyncOperation implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ManagedAsyncOperation.class);

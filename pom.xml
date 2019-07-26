@@ -10,8 +10,8 @@
 
     <modules>
         <module>core</module>
-        <module>s3-store</module>
-        <module>file-store</module>
+        <module>haystack-blobs</module>
+        <module>stores</module>
     </modules>
 
     <scm>
@@ -72,9 +72,9 @@
         <scala-library.version>${scala.major.version}.${scala.minor.version}.${scala.tiny.version}</scala-library.version>
 
         <slf4j-api.version>1.7.25</slf4j-api.version>
-        <commons-lang.version>3.4</commons-lang.version>
+        <commons-lang3.version>3.4</commons-lang3.version>
+        <commons-lang.version>2.6</commons-lang.version>
         <commons-io.version>2.6</commons-io.version>
-        <gson.version>2.8.5</gson.version>
         <guava.version>19.0</guava.version>
 
         <pegdown.version>1.6.0</pegdown.version>
@@ -83,6 +83,7 @@
         <scalastyle.config.location>${basedir}/../checkstyles/scalastyle_config.xml</scalastyle.config.location>
         <junit.version>4.12</junit.version>
         <easymock.version>3.4</easymock.version>
+        <mockito.version>2.28.2</mockito.version>
 
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
@@ -94,6 +95,13 @@
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <jacoco-maven-plugin.version>0.7.4.201502262128</jacoco-maven-plugin.version>
         <skipGpg>true</skipGpg>
+        <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
+        <haystack-client-core.version>0.2.8-SNAPSHOT</haystack-client-core.version>
+        <!--Need to check the working of s3 while updating the version as it will cause
+        s3 upload in haystack-agent to fail due to incompatible versions of `aws-java-sdk-core`-->
+        <aws-java-sdk-s3.version>1.11.128</aws-java-sdk-s3.version>
+        <snappy.version>1.1.7.3</snappy.version>
+        <fastinfoset.version>1.2.16</fastinfoset.version>
     </properties>
 
     <dependencyManagement>
@@ -122,7 +130,7 @@
             <dependency>
                 <groupId>commons-lang</groupId>
                 <artifactId>commons-lang</artifactId>
-                <version>2.6</version>
+                <version>${commons-lang.version}</version>
             </dependency>
 
             <dependency>
@@ -132,16 +140,31 @@
             </dependency>
 
             <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-                <version>${gson.version}</version>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
             </dependency>
-            
             <dependency>
                 <groupId>com.revinate</groupId>
                 <artifactId>guava-rate-limiter</artifactId>
                 <version>${guava.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.expedia.www</groupId>
+                <artifactId>haystack-agent-api</artifactId>
+                <version>${haystack-agent-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>${snappy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.xml.fastinfoset</groupId>
+                <artifactId>FastInfoset</artifactId>
+                <version>${fastinfoset.version}</version>
+            </dependency>
+
 
             <!-- Test Dependencies  -->
             <dependency>
@@ -174,19 +197,15 @@
                 <version>1.7.25</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
-    </dependencies>
 
     <build>
         <resources>
@@ -294,7 +313,7 @@
                                     <limit>
                                         <counter>LINE</counter>
                                         <value>COVEREDRATIO</value>
-                                        <minimum>0.85</minimum>
+                                        <minimum>0.70</minimum>
                                     </limit>
                                 </limits>
                             </rule>

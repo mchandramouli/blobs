@@ -49,10 +49,17 @@ public interface BlobContext {
      * @return string
      */
     default String makeKey(BlobType type) {
-        return String.format("%s/%s/%s/%s-%s",
+        return String.format("%s_%s_%s_%s_%s",
                              getServiceName(),
                              getOperationName(),
                              getOperationId(),
                              type.getType(), UUID.randomUUID().toString());
     }
+
+    /**
+     * perform some task after creation of a blob key
+     * @param blobKey created from {@link BlobContext#makeKey(BlobType)} function
+     * @param blobType {@link BlobType}
+     */
+    void onBlobKeyCreate(String blobKey, BlobType blobType);
 }

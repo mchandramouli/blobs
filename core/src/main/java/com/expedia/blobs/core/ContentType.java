@@ -20,12 +20,13 @@ package com.expedia.blobs.core;
 import org.apache.commons.lang.Validate;
 
 /**
- * Class representing the content type of {@link Blob} object being saved or retrieved
+ * Class representing the content type of {@link com.expedia.www.blobs.model.Blob} object being saved or retrieved
  */
 public class ContentType {
     private final String type;
     public static ContentType JSON = ContentType.from("application/json");
     public static ContentType XML = ContentType.from("application/xml");
+    public static ContentType FAST_INFOSET = ContentType.from("application/fastinfoset");
 
     private ContentType(String type) {
         Validate.notEmpty(type);

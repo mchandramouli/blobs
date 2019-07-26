@@ -19,9 +19,10 @@ package com.expedia.blobs.core.predicates;
 
 import com.expedia.blobs.core.BlobContext;
 import com.revinate.guava.util.concurrent.RateLimiter;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Predicate;
 
 public class BlobsRateLimiter<T extends BlobContext> implements Predicate<T> {
     private final Logger LOGGER = LoggerFactory.getLogger(BlobsRateLimiter.class);
