@@ -37,15 +37,6 @@ spec:
           value: ${grpc_server_endpoint}
         - name: "http-port"
           value: ":${service_port}"
-#        livenessProbe:
-#          exec:
-#            command:
-#            - /bin/grpc_health_probe
-#            - "-addr=:${container_port}"
-#          initialDelaySeconds: 30
-#          periodSeconds: 15
-#          timeoutSeconds: 5
-#          failureThreshold: 3
       nodeSelector:
         ${node_selecter_label}
 
