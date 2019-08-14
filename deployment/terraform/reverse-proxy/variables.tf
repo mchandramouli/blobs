@@ -8,5 +8,5 @@ variable "reverse-proxy" {
 }
 
 variable "service_port" {
-  default = 34002
+  default = 35002
 }

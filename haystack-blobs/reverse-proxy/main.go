@@ -14,9 +14,9 @@ import (
 )
 
 const GRPC_SERVER_ENDPOINT_ENV_VAR = "grpc-server-endpoint"
-const DEFAULT_GRPC_SERVER_ENDPOINT = "haystack-agent:34001"
+const DEFAULT_GRPC_SERVER_ENDPOINT = "haystack-agent:35001"
 const PROXY_SERVER_HTTP_PORT = "http-port"
-const DEFAULT_PROXY_SERVER_HTTP_PORT = ":34002"
+const DEFAULT_PROXY_SERVER_HTTP_PORT = ":35002"
 
 func getGrpcServerEndpoint() string {
 	grpcServerEndpoint := os.Getenv(GRPC_SERVER_ENDPOINT_ENV_VAR)

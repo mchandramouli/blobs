@@ -18,7 +18,7 @@ Below is a sample configuration for blobs in [Haystack-Agent](https://github.com
 agents {
   ossblobs {
     enabled = true
-    port = 34001
+    port = 35001
     max.blob.size.in.kb = 1536
     dispatchers {
       s3 {
@@ -44,7 +44,7 @@ This is a GRPC client that is used to send the blob to wherever the server resid
 
 The client is initiated using a builder which can either take a [ManagedChannel](https://grpc.github.io/grpc-java/javadoc/io/grpc/ManagedChannel.html) object or `address` and `port` of the server running.
 
-The server in the haystack-agent is running at a default port 34001.
+The server in the haystack-agent is running at a default port 35001.
 
 ### Agent Provider or Server
 We have one agent provider today that is loaded depending upon the configuration as above.
@@ -93,11 +93,11 @@ To run the HTTP proxy to GRPC service locally please follow the below steps as w
 1. Inside `reverse-proxy`, build using `go build`
 2. You can add 2 optional environment variables using:
 
-   `$ export grpc-server-endpoint=localhost:34001`
+   `$ export grpc-server-endpoint=localhost:35001`
    
-   `$ export http-port=:34002`
+   `$ export http-port=:35002`
    
-   	The default value of `http-port` is `:34002` and `grpc-server-endpoint` is `localhost:34001`
+   	The default value of `http-port` is `:35002` and `grpc-server-endpoint` is `localhost:35001`
 
 3. To run the server use `./main`. 
 
@@ -158,6 +158,6 @@ protoc -I/usr/local/include -I. \
 
 7. Inside `reverse-proxy` call `go build`
 
-8. To run the server use `./main -http-port=:34002 -grpc-server-endpoint=localhost:34001`. 
+8. To run the server use `./main -http-port=:35002 -grpc-server-endpoint=localhost:35001`. 
 
-	The command line arguments are optional with default value of `http-port` as `:34002` and `grpc-server-endpoint` as `localhost:34001`
+	The command line arguments are optional with default value of `http-port` as `:35002` and `grpc-server-endpoint` as `localhost:35001`
