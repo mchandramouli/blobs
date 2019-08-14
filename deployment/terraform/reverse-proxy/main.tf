@@ -21,7 +21,7 @@ data "template_file" "deployment_yaml" {
     kubectl_context_name = "${var.kubectl_context_name}"
     kubectl_executable_name = "${var.kubectl_executable_name}"
     namespace = "${var.namespace}"
-    grpc_server_endpoint = "${var.reverse-proxy["grpc_server_endpoint"]}"
+    grpc_server_endpoint = "${var.grpc_server_endpoint}"
     service_port = "${var.service_port}"
   }
 }
