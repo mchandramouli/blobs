@@ -119,6 +119,11 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
+                    <excludes>
+                        <exclude>
+                            **/GrpcHealthServer.*
+                        </exclude>
+                    </excludes>
                     <rules>
                         <rule>
                             <limits>
