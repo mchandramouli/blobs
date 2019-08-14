@@ -2,6 +2,7 @@ package com.expedia.www.haystack.agent.blobs.server.spi;
 
 import com.expedia.www.haystack.agent.blobs.dispatcher.core.BlobDispatcher;
 import com.expedia.www.haystack.agent.blobs.server.api.BlobAgentGrpcServer;
+import com.expedia.www.haystack.agent.blobs.server.api.GrpcHealthServer;
 import com.expedia.www.haystack.agent.core.Agent;
 import com.google.common.annotations.VisibleForTesting;
 import com.typesafe.config.Config;
@@ -31,7 +32,7 @@ public class BlobAgent implements Agent {
         this.server = server;
     }
 
-    public BlobAgent(){
+    public BlobAgent() {
 
     }
 
@@ -58,7 +59,8 @@ public class BlobAgent implements Agent {
         final NettyServerBuilder builder = NettyServerBuilder
                 .forPort(port)
                 .directExecutor()
-                .addService(new BlobAgentGrpcServer(dispatchers, maxBlobSizeInBytes));
+                .addService(new BlobAgentGrpcServer(dispatchers, maxBlobSizeInBytes))
+                .addService(new GrpcHealthServer());
 
         // default max message size in grpc is 4MB. if our maxBlobSize is greater than 4MB then we should configure this
         // limit in the netty based grpc server.
