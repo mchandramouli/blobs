@@ -42,10 +42,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
     private final Logger LOGGER = LoggerFactory.getLogger(BlobAgentGrpcServer.class);
@@ -158,7 +155,7 @@ public class BlobAgentGrpcServer extends BlobAgentGrpc.BlobAgentImplBase {
     String parseBlob(ByteString content, String contentType) {
         String blob = null;
         try {
-            if (contentType == ContentType.FAST_INFOSET.getType()) {
+            if (Objects.equals(contentType, ContentType.FAST_INFOSET.getType())) {
                 blob = parseFastInfosetToString(content);
             } else {
                 blob = IOUtils.toString(content.toByteArray());

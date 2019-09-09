@@ -68,7 +68,7 @@ class AsyncSupportSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should store a blob") {
-      Given(" a simple blob")
+      Given("a simple blob")
       val blob = Support.newBlob()
       val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
 
