@@ -6,6 +6,7 @@
 	* [Models](#models)
 	* [Span-Blob Context](#span-blob-context)
 	* [Reverse Proxy](#reverse-proxy)
+	* [Frequently Asked Questions(FAQs)](#faqs)
 
 ## Haystack Blobs
 
@@ -161,3 +162,15 @@ protoc -I/usr/local/include -I. \
 8. To run the server use `./main -http-port=:35002 -grpc-server-endpoint=localhost:35001`. 
 
 	The command line arguments are optional with default value of `http-port` as `:35002` and `grpc-server-endpoint` as `localhost:35001`
+
+### FAQs
+
+1. Can I save some other type of blob apart from request and response?
+
+	Answer: Yes you can create your own type of blob and save them like the way request and response object of a micro-service is saved in a store.
+
+	The steps involved requires you to create your own of [BlobType](https://github.com/ExpediaDotCom/blobs/blob/master/core/src/main/java/com/expedia/blobs/core/BlobType.java) using `BlobType.from(String type)` and use this while writing the blob to the sink through [BlobWriterImpl's](https://github.com/ExpediaDotCom/blobs/blob/master/core/src/main/java/com/expedia/blobs/core/BlobWriterImpl.java) `write(BlobType blobType, ContentType contentType, Consumer<OutputStream> dataCallback, Consumer<Metadata> metadataCallback)` function.
+    
+    The BlobType you use for a specific piece of data/log to be stored in the sink will be stored as a tag with tag name similar to `"blob type"-blob` for a particular span in haystack, where `blob type` is the `type` you used to create BlobType. 
+    
+    Example: The request blob with BlobType as `request` is saved with a tag for a particular span using tag name as `request-blob`.
