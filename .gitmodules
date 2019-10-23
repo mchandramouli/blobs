@@ -1,4 +1,4 @@
-[submodule "haystack-blobs/blobs-grpc-models/src/main/haystack-idl"]
-	path = haystack-blobs/blobs-grpc-models/src/main/haystack-idl
+[submodule "blobs-agent/blobs-grpc-models/src/main/haystack-idl"]
+	path = blobs-agent/blobs-grpc-models/src/main/haystack-idl
 	url = https://github.com/ExpediaDotCom/haystack-idl.git
 	branch = master
