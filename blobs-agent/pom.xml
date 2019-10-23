@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>haystack-blobs</artifactId>
+    <artifactId>blobs-agent</artifactId>
     <packaging>pom</packaging>
     <modules>
         <module>blobs-agent-server</module>

@@ -10,7 +10,7 @@
 
     <modules>
         <module>core</module>
-        <module>haystack-blobs</module>
+        <module>blobs-agent</module>
         <module>stores</module>
     </modules>
 
