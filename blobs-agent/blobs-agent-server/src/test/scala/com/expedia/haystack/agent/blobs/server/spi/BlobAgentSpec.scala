@@ -6,7 +6,6 @@ import java.util
 import java.util.concurrent.TimeUnit
 
 import com.expedia.haystack.agent.blobs.dispatcher.core.BlobDispatcher
-import com.expedia.haystack.agent.blobs.server.spi.BlobAgent
 import com.typesafe.config.ConfigFactory
 import io.grpc.Server
 import org.scalatest.easymock.EasyMockSugar

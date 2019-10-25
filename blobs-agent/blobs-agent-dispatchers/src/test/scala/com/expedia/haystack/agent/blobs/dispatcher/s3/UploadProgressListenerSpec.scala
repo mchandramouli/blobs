@@ -1,7 +1,6 @@
 package com.expedia.haystack.agent.blobs.dispatcher.s3
 
 import com.amazonaws.event.{ProgressEvent, ProgressEventType}
-import com.expedia.haystack.agent.blobs.dispatcher.s3.UploadProgressListener
 import com.expedia.www.haystack.agent.core.metrics.SharedMetricRegistry
 import org.easymock.EasyMock.{replay, verify}
 import org.scalatest.easymock.EasyMockSugar._
