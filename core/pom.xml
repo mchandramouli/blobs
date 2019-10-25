@@ -27,7 +27,7 @@
         <dependency>
             <groupId>com.expedia.www</groupId>
             <artifactId>blobs-grpc-models</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

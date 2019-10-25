@@ -1,5 +1,5 @@
 ## Table Of Content
-- [Haystack Blobs](#haystack-blobs)
+- [Haystack Blobs](#blobs-agent)
 	* [Client](#client)
 	* [Agent Provider/Server](#agent-provider-or-server)
 	* [Dispatchers](#dispatchers)
@@ -28,7 +28,7 @@ agents {
         should.wait.for.upload = false
         max.connections = 50
         retry.count = 1
-        bucket.name = "haystack-blobs"
+        bucket.name = "blobs-agent"
         region = "us-east-1"
         aws.access.key = "accessKey"
         aws.secret.key = "secretKey"

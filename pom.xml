@@ -10,8 +10,9 @@
 
     <modules>
         <module>core</module>
-        <module>blobs-agent</module>
         <module>stores</module>
+        <module>blobs-agent</module>
+        <module>haystack-blobs</module>
     </modules>
 
     <scm>
@@ -64,6 +65,7 @@
     </developers>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.jdk.version>1.8</project.jdk.version>
         <scala.major.version>2</scala.major.version>
         <scala.minor.version>12</scala.minor.version>

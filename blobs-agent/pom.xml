@@ -16,7 +16,6 @@
         <module>blobs-agent-client</module>
         <module>blobs-agent-dispatchers</module>
         <module>blobs-grpc-models</module>
-        <module>span-blob-context</module>
     </modules>
 
     <properties>

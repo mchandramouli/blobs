@@ -1,5 +1,8 @@
-package com.expedia.blobs.core;
+package com.expedia.haystack.blobs;
 
+import com.expedia.blobs.core.BlobContext;
+import com.expedia.blobs.core.BlobType;
+import com.expedia.blobs.core.BlobWriter;
 import io.opentracing.Span;
 import org.apache.commons.lang3.Validate;
 
