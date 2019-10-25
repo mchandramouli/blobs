@@ -24,11 +24,6 @@
         </dependency>
         <dependency>
             <groupId>com.expedia.www</groupId>
-            <artifactId>haystack-agent-api</artifactId>
-            <version>${haystack-agent-core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.expedia.www</groupId>
             <artifactId>blobs-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
