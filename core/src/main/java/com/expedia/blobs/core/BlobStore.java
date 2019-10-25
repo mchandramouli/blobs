@@ -17,8 +17,7 @@
  */
 package com.expedia.blobs.core;
 
-import com.expedia.www.blobs.model.Blob;
-
+import com.expedia.blobs.model.Blob;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
