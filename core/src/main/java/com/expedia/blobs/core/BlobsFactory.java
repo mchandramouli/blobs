@@ -23,7 +23,7 @@ import java.util.function.Predicate;
 
 /**
  * Starting point to obtain an instance of {@link BlobWriter} to write
- * {@link com.expedia.www.blobs.model.Blob} instances to be saved using a given {@link BlobStore}
+ * {@link com.expedia.blobs.model.Blob} instances to be saved using a given {@link BlobStore}
  * @param <T> Actual type of {@link BlobContext} associated with the {@link BlobWriter} instance
  */
 public class BlobsFactory<T extends BlobContext> {
@@ -52,7 +52,7 @@ public class BlobsFactory<T extends BlobContext> {
     }
 
     /**
-     * Creates a new instance of {@link BlobWriter} that can be used to write one or more {@link com.expedia.www.blobs.model.Blob} instances
+     * Creates a new instance of {@link BlobWriter} that can be used to write one or more {@link com.expedia.blobs.model.Blob} instances
      * associated with the same {@link BlobContext}.
      *
      * This method will return a no-op Blobs instance if the given `context` does not qualify

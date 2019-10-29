@@ -17,11 +17,9 @@
  */
 package com.expedia.blobs.core;
 
-import com.expedia.www.blobs.model.Blob;
+import com.expedia.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
-import org.apache.commons.lang.Validate;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -29,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.apache.commons.lang.Validate;
 
 public final class BlobWriterImpl implements BlobWriter {
     private final BlobContext context;

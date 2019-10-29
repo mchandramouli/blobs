@@ -10,8 +10,9 @@
 
     <modules>
         <module>core</module>
-        <module>haystack-blobs</module>
         <module>stores</module>
+        <module>blobs-agent</module>
+        <module>haystack-blobs</module>
     </modules>
 
     <scm>
@@ -64,6 +65,7 @@
     </developers>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.jdk.version>1.8</project.jdk.version>
         <scala.major.version>2</scala.major.version>
         <scala.minor.version>12</scala.minor.version>
@@ -95,8 +97,8 @@
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <jacoco-maven-plugin.version>0.7.4.201502262128</jacoco-maven-plugin.version>
         <skipGpg>true</skipGpg>
-        <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
-        <haystack-client-core.version>0.2.8-SNAPSHOT</haystack-client-core.version>
+        <haystack-agent-core.version>0.1.12</haystack-agent-core.version>
+        <haystack-client-core.version>0.2.8</haystack-client-core.version>
         <!--Need to check the working of s3 while updating the version as it will cause
         s3 upload in haystack-agent to fail due to incompatible versions of `aws-java-sdk-core`-->
         <aws-java-sdk-s3.version>1.11.128</aws-java-sdk-s3.version>
