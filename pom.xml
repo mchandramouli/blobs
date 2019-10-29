@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.expedia.www</groupId>
     <artifactId>blobs</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>model</module>
         <module>core</module>
         <module>stores</module>
-        <module>blobs-agent</module>
+        <module>agent</module>
         <module>haystack-blobs</module>
     </modules>
 

@@ -5,17 +5,23 @@
     <parent>
         <artifactId>blobs-agent</artifactId>
         <groupId>com.expedia.www</groupId>
-        <version>1.0.3-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>blobs-agent-dispatchers</artifactId>
+    <artifactId>blobs-agent-server</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <typesafe-config.version>1.3.1</typesafe-config.version>
-    </properties>
-
     <dependencies>
+        <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-grpc-models</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.expedia.www</groupId>
+            <artifactId>blobs-agent-dispatchers</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.expedia.www</groupId>
             <artifactId>blobs-core</artifactId>
@@ -23,25 +29,25 @@
         </dependency>
         <dependency>
             <groupId>com.expedia.www</groupId>
-            <artifactId>blobs-grpc-models</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>${aws-java-sdk-s3.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.expedia.www</groupId>
             <artifactId>haystack-agent-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
+            <groupId>com.sun.xml.fastinfoset</groupId>
+            <artifactId>FastInfoset</artifactId>
+        </dependency>
+
+        <!--grpc-->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-services</artifactId>
+            <version>${grpc.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-all</artifactId>
+            <version>${grpc.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!--Test-->
@@ -60,6 +66,12 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.scalatest</groupId>
@@ -115,6 +127,22 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            **/GrpcHealthServer.*
+                        </exclude>
+                    </excludes>
+                    <rules>
+                        <rule>
+                            <limits>
+                                <limit>
+                                    <minimum>0.50</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
+                </configuration>
             </plugin>
         </plugins>
     </build>
