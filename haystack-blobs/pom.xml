@@ -26,6 +26,10 @@
             <artifactId>opentracing-api</artifactId>
             <version>${opentracing.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
 
         <!-- test -->
         <dependency>

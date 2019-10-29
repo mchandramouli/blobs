@@ -15,7 +15,6 @@
         <module>blobs-agent-server</module>
         <module>blobs-agent-client</module>
         <module>blobs-agent-dispatchers</module>
-        <module>blobs-grpc-models</module>
     </modules>
 
     <properties>
