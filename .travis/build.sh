@@ -4,4 +4,4 @@
 
 ./mvnw --batch-mode install -B -V
 
-cd blobs-agent/reverse-proxy && docker build -t ${DOCKER_IMAGE_NAME} -f Dockerfile . && cd ../..
+cd agent/reverse-proxy && docker build -t ${DOCKER_IMAGE_NAME} -f Dockerfile . && cd ../..

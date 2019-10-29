@@ -41,8 +41,9 @@ Use the following command to build the repository:
 
 ## Blobs Core
 
-This module contains all the core classes needed to instrument the creation of the blobs and then start the process of writing it to a [store](#stores). Only the Blob Model is created by the `blob.proto` present in [blobs-grpc-models](haystack-blobs/README.md#models) module inside the package `com.expedia.www.blobs.model`.
+This module contains all the core classes needed to instrument the creation of the blobs and then start the process of writing it to a [store](#stores). Only the Blob Model is created by the `blob.proto` present in [model](model) module inside the package `com.expedia.www.blobs.model`.
 
 ## Stores
 
 Click [here](stores/README.md) for more details.
+

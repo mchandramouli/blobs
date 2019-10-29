@@ -5,16 +5,16 @@
     <parent>
         <artifactId>blobs</artifactId>
         <groupId>com.expedia.www</groupId>
-        <version>1.0.3-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>blobs-agent</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>blobs-agent-server</module>
-        <module>blobs-agent-client</module>
-        <module>blobs-agent-dispatchers</module>
+        <module>server</module>
+        <module>client</module>
+        <module>dispatchers</module>
     </modules>
 
     <properties>
