@@ -28,7 +28,7 @@ class BlobWriterImplSpec extends FunSpec with GivenWhenThen with BeforeAndAfter 
       captured.hasCaptured should be (true)
       And("blob's key is generated as expected")
       val capturedBlob = captured.getValue
-      """service1_operation1_.*_request_.*""".r.pattern.matcher(capturedBlob.build.getKey).matches() should be (true)
+      """service1_operation1_.*_request""".r.pattern.matcher(capturedBlob.build.getKey).matches() should be (true)
     }
     it("should call store to with a blob object that invokes the callback to serialize blob only " +
       "the first time when data is fetched") {

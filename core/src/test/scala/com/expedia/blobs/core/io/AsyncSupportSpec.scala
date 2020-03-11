@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.expedia.blobs.core._
-import com.expedia.www.blobs.model.Blob
+import com.expedia.blobs.model.Blob
 import com.google.protobuf.ByteString
 import org.scalatest.easymock.EasyMockSugar
 import org.scalatest.{BeforeAndAfter, FunSpec, GivenWhenThen, Matchers}
@@ -68,7 +68,7 @@ class AsyncSupportSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wi
     }
 
     it("should store a blob") {
-      Given(" a simple blob")
+      Given("a simple blob")
       val blob = Support.newBlob()
       val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
 

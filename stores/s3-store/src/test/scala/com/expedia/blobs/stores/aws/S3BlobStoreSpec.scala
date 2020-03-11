@@ -9,7 +9,7 @@ import com.amazonaws.services.s3.transfer.internal.UploadImpl
 import com.amazonaws.services.s3.transfer.{TransferManager, Upload}
 import com.expedia.blobs.core.support.CompressDecompressService.CompressionType
 import com.expedia.blobs.core.{BlobReadWriteException, BlobWriterImpl}
-import com.expedia.www.blobs.model.Blob
+import com.expedia.blobs.model.Blob
 import com.google.protobuf.ByteString
 import org.apache.commons.io.IOUtils
 import org.easymock.EasyMock
@@ -76,15 +76,17 @@ class S3BlobStoreSpec extends FunSpec with GivenWhenThen with BeforeAndAfter wit
 
     val blobBuilder = mock[BlobWriterImpl.BlobBuilder]
 
-    val result = mock[UploadImpl]
+    val result = mock[Upload]
+    val capturedRequest = EasyMock.newCapture[PutObjectRequest]()
     expecting {
-      transferManager.upload(anyObject[PutObjectRequest]).andReturn(result).times(1)
+      transferManager.upload(EasyMock.capture(capturedRequest)).andReturn(result).times(1)
       blobBuilder.build().andReturn(blob)
     }
     replay(transferManager, blobBuilder)
     When("store is requested to store the blob")
     store.store(blobBuilder)
-    Thread.sleep(10)
+    Thread.sleep(5000)
+    capturedRequest.getValue.getBucketName shouldEqual "blobs"
     Then("it should create a put request and send it to the transfer manager")
     verify(transferManager, blobBuilder)
   }

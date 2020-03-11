@@ -20,7 +20,7 @@ package com.expedia.blobs.core;
 import org.apache.commons.lang.Validate;
 
 /**
- * Class representing the type of {@link com.expedia.www.blobs.model.Blob} object being saved or retrieved
+ * Class representing the type of {@link com.expedia.blobs.model.Blob} object being saved or retrieved
  */
 public class BlobType {
     private final String type;

@@ -5,13 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.expedia.www</groupId>
     <artifactId>blobs</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
+        <module>model</module>
         <module>core</module>
-        <module>haystack-blobs</module>
         <module>stores</module>
+        <module>agent</module>
+        <module>haystack-blobs</module>
     </modules>
 
     <scm>
@@ -64,6 +66,7 @@
     </developers>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.jdk.version>1.8</project.jdk.version>
         <scala.major.version>2</scala.major.version>
         <scala.minor.version>12</scala.minor.version>
@@ -95,8 +98,8 @@
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <jacoco-maven-plugin.version>0.7.4.201502262128</jacoco-maven-plugin.version>
         <skipGpg>true</skipGpg>
-        <haystack-agent-core.version>0.1.7-SNAPSHOT</haystack-agent-core.version>
-        <haystack-client-core.version>0.2.8-SNAPSHOT</haystack-client-core.version>
+        <haystack-agent-core.version>0.1.12</haystack-agent-core.version>
+        <haystack-client-core.version>0.2.8</haystack-client-core.version>
         <!--Need to check the working of s3 while updating the version as it will cause
         s3 upload in haystack-agent to fail due to incompatible versions of `aws-java-sdk-core`-->
         <aws-java-sdk-s3.version>1.11.128</aws-java-sdk-s3.version>
@@ -313,7 +316,7 @@
                                     <limit>
                                         <counter>LINE</counter>
                                         <value>COVEREDRATIO</value>
-                                        <minimum>0.70</minimum>
+                                        <minimum>0.67</minimum>
                                     </limit>
                                 </limits>
                             </rule>
@@ -396,7 +399,7 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -407,4 +410,34 @@
             <url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-release-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

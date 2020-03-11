@@ -49,11 +49,11 @@ public interface BlobContext {
      * @return string
      */
     default String makeKey(BlobType type) {
-        return String.format("%s_%s_%s_%s_%s",
+        return String.format("%s_%s_%s_%s",
                              getServiceName(),
                              getOperationName(),
                              getOperationId(),
-                             type.getType(), UUID.randomUUID().toString());
+                             type.getType());
     }
 
     /**

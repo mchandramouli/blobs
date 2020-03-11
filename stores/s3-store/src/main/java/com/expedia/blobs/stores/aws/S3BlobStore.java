@@ -22,26 +22,24 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
 import com.expedia.blobs.core.BlobReadWriteException;
 import com.expedia.blobs.core.BlobWriterImpl;
 import com.expedia.blobs.core.io.AsyncSupport;
 import com.expedia.blobs.core.io.BlobInputStream;
 import com.expedia.blobs.core.support.CompressDecompressService;
-import com.expedia.www.blobs.model.Blob;
+import com.expedia.blobs.model.Blob;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.Validate;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class S3BlobStore extends AsyncSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(S3BlobStore.class);
@@ -63,7 +61,7 @@ public class S3BlobStore extends AsyncSupport {
         this.compressDecompressService = builder.compressDecompressService;
 
         if (builder.closeOnShutdown) {
-            this.shutdownHookAdded = builder.closeOnShutdown;
+            this.shutdownHookAdded = true;
             Runtime.getRuntime().addShutdownHook(this.shutdownHook);
         } else {
             LOGGER.info("No shutdown hook registered: Please call close() manually on application shutdown.");
@@ -73,7 +71,6 @@ public class S3BlobStore extends AsyncSupport {
 
     @Override
     protected void storeInternal(BlobWriterImpl.BlobBuilder blobBuilder) {
-
         final Blob blob = blobBuilder.build();
 
         try {
@@ -90,8 +87,7 @@ public class S3BlobStore extends AsyncSupport {
                             .withCannedAcl(CannedAccessControlList.BucketOwnerFullControl)
                             .withGeneralProgressListener(new UploadProgressListener(LOGGER, blob.getKey()));
 
-            final Upload upload = transferManager.upload(putRequest);
-            //upload.waitForUploadResult();
+            transferManager.upload(putRequest);
         } catch (Exception e) {
             final String message = String.format("Unable to upload blob to S3 for  key %s : %s",
                     blob.getKey(),
