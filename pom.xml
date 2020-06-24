@@ -15,6 +15,7 @@
         <module>agent</module>
         <module>haystack-blobs</module>
         <module>zipkin-blobs</module>
+        <module>opentracing-blobs</module>
     </modules>
 
     <scm>
