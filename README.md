@@ -33,6 +33,10 @@ Use the following command to clone the repository including the submodules prese
 
 `git clone --recursive git@github.com:ExpediaDotCom/blobs.git`
 
+Updating submodules (skip `--init` flag if model submodule was already initialized):
+
+`git submodule update --init --recursive`
+
 ##### Build
 
 Use the following command to build the repository:

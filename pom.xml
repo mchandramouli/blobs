@@ -71,7 +71,7 @@
         <project.jdk.version>1.8</project.jdk.version>
         <scala.major.version>2</scala.major.version>
         <scala.minor.version>12</scala.minor.version>
-        <scala.tiny.version>5</scala.tiny.version>
+        <scala.tiny.version>11</scala.tiny.version>
         <scala.major.minor.version>${scala.major.version}.${scala.minor.version}</scala.major.minor.version>
         <scala-library.version>${scala.major.version}.${scala.minor.version}.${scala.tiny.version}</scala-library.version>
 
@@ -92,12 +92,13 @@
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
-        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
+        <scalatest-maven-plugin.version>2.0.0</scalatest-maven-plugin.version>
         <scalastyle-maven-plugin.version>0.8.0</scalastyle-maven-plugin.version>
-        <scala-maven-plugin.version>3.2.1</scala-maven-plugin.version>
+        <scala-maven-plugin.version>3.4.6</scala-maven-plugin.version>
         <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
-        <jacoco-maven-plugin.version>0.7.4.201502262128</jacoco-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <skipGpg>true</skipGpg>
         <haystack-agent-core.version>0.1.12</haystack-agent-core.version>
         <haystack-client-core.version>0.2.8</haystack-client-core.version>
@@ -169,7 +170,6 @@
                 <version>${fastinfoset.version}</version>
             </dependency>
 
-
             <!-- Test Dependencies  -->
             <dependency>
                 <groupId>org.scalatest</groupId>
@@ -210,6 +210,16 @@
 
         </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+        <!-- java 11 -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <resources>
@@ -262,16 +272,7 @@
                     <version>${scala-maven-plugin.version}</version>
                     <executions>
                         <execution>
-                            <id>scala-compile-first</id>
-                            <phase>process-resources</phase>
-                            <goals>
-                                <goal>add-source</goal>
-                                <goal>compile</goal>
-                            </goals>
-                        </execution>
-                        <execution>
                             <id>scala-test-compile</id>
-                            <phase>process-test-resources</phase>
                             <goals>
                                 <goal>testCompile</goal>
                             </goals>
@@ -293,6 +294,7 @@
                     <version>${maven-javadoc-plugin.version}</version>
                     <configuration>
                         <show>public</show>
+                        <source>8</source>
                     </configuration>
                     <executions>
                         <execution>
@@ -368,6 +370,11 @@
                     <groupId>org.sonatype.plugins</groupId>
                     <artifactId>nexus-staging-maven-plugin</artifactId>
                     <version>${nexus-staging-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
