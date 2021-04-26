@@ -77,7 +77,7 @@
         <slf4j-api.version>1.7.25</slf4j-api.version>
         <commons-lang3.version>3.4</commons-lang3.version>
         <commons-lang.version>2.6</commons-lang.version>
-        <commons-io.version>2.6</commons-io.version>
+        <commons-io.version>2.7</commons-io.version>
         <guava.version>19.0</guava.version>
 
         <pegdown.version>1.6.0</pegdown.version>
